@@ -1,0 +1,36 @@
+# =========================
+# 1. Python & FastAPI (后端 backend)
+# =========================
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/.env
+backend/.pytest_cache/
+
+# =========================
+# 2. Node & Vue3 (PC网页端 web-vue)
+# =========================
+web-vue/node_modules/
+web-vue/dist/
+web-vue/.env.local
+web-vue/*.log
+
+# =========================
+# 3. uni-app (小程序端 miniapp)
+# =========================
+miniapp/unpackage/
+miniapp/node_modules/
+miniapp/dist/
+miniapp/.env.local
+
+# =========================
+# 4. 编辑器与操作系统缓存 (通用)
+# =========================
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
