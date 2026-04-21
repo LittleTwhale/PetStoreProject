@@ -5,6 +5,7 @@ pymysql
 alembic
 dotenv
 python-dotenv
-passlib[bcrypt]
+bcrypt==3.2.2
+passlib
 PyJWT
 pydantic
