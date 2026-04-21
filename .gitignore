@@ -6,6 +6,7 @@ backend/__pycache__/
 backend/*.pyc
 backend/.env
 backend/.pytest_cache/
+**/__pycache__/
 
 # =========================
 # 2. Node & Vue3 (PC网页端 web-vue)
