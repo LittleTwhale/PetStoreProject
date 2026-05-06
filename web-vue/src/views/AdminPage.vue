@@ -2,11 +2,12 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { Plus, Search, EditPen, UserFilled } from '@element-plus/icons-vue'
+import { Plus, Search, EditPen, UserFilled, Delete } from '@element-plus/icons-vue'
 import { adminApi } from '@/api'
 
 interface UserItem {
   id: number
+  identifier: string
   nickname: string
   avatar: string | null
   role: string
@@ -69,12 +70,12 @@ const resetCreateForm = () => {
 
 const roleOptions = [
   { label: '管理员', value: 'admin' },
-  { label: '员工', value: 'staff' },
-  { label: '会员', value: 'customer' },
+  { label: '店员', value: 'staff' },
+  { label: '顾客', value: 'customer' },
 ]
 
 const roleLabel = (role: string) => {
-  const map: Record<string, string> = { admin: '管理员', staff: '员工', customer: '会员' }
+  const map: Record<string, string> = { admin: '管理员', staff: '店员', customer: '顾客' }
   return map[role] || role
 }
 
@@ -134,8 +135,7 @@ const handleCreate = async () => {
     await fetchUsers()
   } catch (err: unknown) {
     ElMessage.error(
-      (err as { response?: { data?: { detail?: string } } }).response?.data?.detail ||
-        '创建失败',
+      (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || '创建失败',
     )
   } finally {
     createLoading.value = false
@@ -170,8 +170,7 @@ const handleEdit = async () => {
     await fetchUsers()
   } catch (err: unknown) {
     ElMessage.error(
-      (err as { response?: { data?: { detail?: string } } }).response?.data?.detail ||
-        '更新失败',
+      (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || '更新失败',
     )
   } finally {
     editLoading.value = false
@@ -187,6 +186,26 @@ const toggleActive = async (user: UserItem) => {
     })
     await adminApi.updateUser(user.id, { is_active: !user.is_active })
     ElMessage.success(`已${action}`)
+    await fetchUsers()
+  } catch {
+    // 取消
+  }
+}
+
+// ========== 删除用户 ==========
+const handleDelete = async (user: UserItem) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除用户「${user.nickname}」(ID: ${user.id}) 吗？此操作不可恢复。`,
+      '删除用户',
+      {
+        type: 'error',
+        confirmButtonText: '确认删除',
+        confirmButtonClass: 'el-button--danger',
+      },
+    )
+    await adminApi.deleteUser(user.id)
+    ElMessage.success('用户已删除')
     await fetchUsers()
   } catch {
     // 取消
@@ -245,6 +264,11 @@ const toggleActive = async (user: UserItem) => {
             </div>
           </template>
         </el-table-column>
+        <el-table-column prop="identifier" label="登录账号" width="140">
+          <template #default="{ row }">
+            <span style="font-family: monospace; color: #606266">{{ row.identifier || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="角色" width="100">
           <template #default="{ row }">
             <el-tag :type="roleTagType(row.role)" size="small" round>
@@ -270,10 +294,13 @@ const toggleActive = async (user: UserItem) => {
             {{ new Date(row.created_at).toLocaleString('zh-CN') }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link :icon="EditPen" @click="openEditDialog(row)">
               编辑
+            </el-button>
+            <el-button type="danger" link :icon="Delete" @click="handleDelete(row)">
+              删除
             </el-button>
           </template>
         </el-table-column>
@@ -296,11 +323,7 @@ const toggleActive = async (user: UserItem) => {
         label-position="left"
       >
         <el-form-item label="账号" prop="identifier">
-          <el-input
-            v-model="createForm.identifier"
-            placeholder="用户登录账号"
-            maxlength="100"
-          />
+          <el-input v-model="createForm.identifier" placeholder="用户登录账号" maxlength="100" />
         </el-form-item>
         <el-form-item label="密码" prop="password">
           <el-input
@@ -312,11 +335,7 @@ const toggleActive = async (user: UserItem) => {
           />
         </el-form-item>
         <el-form-item label="昵称" prop="nickname">
-          <el-input
-            v-model="createForm.nickname"
-            placeholder="用户显示名称"
-            maxlength="50"
-          />
+          <el-input v-model="createForm.nickname" placeholder="用户显示名称" maxlength="50" />
         </el-form-item>
         <el-form-item label="角色" prop="role">
           <el-select v-model="createForm.role" style="width: 100%">
@@ -352,12 +371,7 @@ const toggleActive = async (user: UserItem) => {
       :close-on-click-modal="false"
       destroy-on-close
     >
-      <el-form
-        ref="editFormRef"
-        :model="editForm"
-        label-width="80px"
-        label-position="left"
-      >
+      <el-form ref="editFormRef" :model="editForm" label-width="80px" label-position="left">
         <el-form-item
           label="昵称"
           prop="nickname"
@@ -380,11 +394,7 @@ const toggleActive = async (user: UserItem) => {
           </el-select>
         </el-form-item>
         <el-form-item label="职位描述">
-          <el-input
-            v-model="editForm.position_desc"
-            placeholder="职位或身份描述"
-            maxlength="100"
-          />
+          <el-input v-model="editForm.position_desc" placeholder="职位或身份描述" maxlength="100" />
         </el-form-item>
         <el-form-item label="激活状态">
           <el-switch
@@ -397,9 +407,7 @@ const toggleActive = async (user: UserItem) => {
       </el-form>
       <template #footer>
         <el-button @click="editDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="editLoading" @click="handleEdit">
-          保存修改
-        </el-button>
+        <el-button type="primary" :loading="editLoading" @click="handleEdit"> 保存修改 </el-button>
       </template>
     </el-dialog>
   </div>

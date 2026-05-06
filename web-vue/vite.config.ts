@@ -15,7 +15,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8000', // 假设你的 FastAPI 运行在 8000 端口
+        target: 'http://localhost:8000', // 你的 FastAPI 后端接口代理
+        changeOrigin: true,
+      },
+      // 将静态文件请求也代理到后端
+      '/static': {
+        target: 'http://localhost:8000',
         changeOrigin: true,
       },
     },

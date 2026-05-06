@@ -12,6 +12,7 @@ export interface UserInfo {
   is_active: boolean
   created_at: string
   updated_at: string
+  identifier: string | null
 }
 
 export const useUserStore = defineStore('user', () => {

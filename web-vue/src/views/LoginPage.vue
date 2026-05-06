@@ -137,7 +137,7 @@ const switchTab = (tab: 'login' | 'register') => {
           <div class="brand-icon">
             <el-icon :size="48"><Present /></el-icon>
           </div>
-          <h1 class="brand-name">PetStore</h1>
+          <h1 class="brand-name">非诚勿宠</h1>
           <p class="brand-desc">专业 · 贴心的全栈宠物服务平台</p>
           <div class="brand-features">
             <div class="feature-item">
@@ -225,7 +225,7 @@ const switchTab = (tab: 'login' | 'register') => {
           <!-- 注册表单 -->
           <div v-else key="register" class="form-wrapper">
             <h3 class="form-title">创建账户</h3>
-            <p class="form-subtitle">注册成为 PetStore 会员</p>
+            <p class="form-subtitle">注册成为非诚勿宠会员</p>
 
             <el-form
               ref="registerFormRef"

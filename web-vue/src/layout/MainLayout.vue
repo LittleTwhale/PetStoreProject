@@ -62,7 +62,7 @@ onMounted(async () => {
           <Present />
         </el-icon>
         <transition name="fade">
-          <span v-show="!isCollapse" class="logo-text">PetStore</span>
+          <span v-show="!isCollapse" class="logo-text">非诚勿宠</span>
         </transition>
       </div>
 

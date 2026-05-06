@@ -44,13 +44,16 @@ export const authApi = {
   updateMe: (data: { nickname?: string; position_desc?: string }) =>
     api.put('/auth/me', data),
 
-  uploadAvatar: (file: File) => {
+  uploadAvatar: (file: Blob, filename: string) => {
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', file, filename)
     return api.post('/auth/me/avatar', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+
+  changePassword: (data: { old_password: string; new_password: string }) =>
+    api.put('/auth/me/password', data),
 }
 
 // ==================== 管理员 API ====================
@@ -75,4 +78,6 @@ export const adminApi = {
       permissions?: unknown
     },
   ) => api.put(`/auth/admin/users/${userId}`, data),
+
+  deleteUser: (userId: number) => api.delete(`/auth/admin/users/${userId}`),
 }
