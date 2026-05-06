@@ -1,11 +1,13 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+// 引入 RouterView 组件
+import { RouterView } from 'vue-router'
+</script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <!-- 路由匹配到的组件将渲染在这里 -->
+  <RouterView />
 </template>
 
-<style scoped></style>
+<style scoped>
+/* 这里可以留空，或者放一些全局的基础样式 */
+</style>
