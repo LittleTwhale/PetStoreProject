@@ -2,6 +2,7 @@
 # 1. Python & FastAPI (后端 backend)
 # =========================
 backend/venv/
+backend/static/
 backend/__pycache__/
 backend/*.pyc
 backend/.env
@@ -35,3 +36,4 @@ miniapp/.env.local
 *.njsproj
 *.sln
 *.sw?
+.claude/
