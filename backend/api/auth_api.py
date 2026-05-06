@@ -10,6 +10,7 @@ from database.database import get_db
 from schemas.auth_schema import (
     LoginReq, TokenRes, UserInfo, RegisterReq, UserUpdateReq,
     AdminCreateUserReq, AdminUpdateUserReq, UserListItem, AvatarRes,
+    ChangePasswordReq,
 )
 from crud import auth_crud
 from core import security
@@ -91,9 +92,22 @@ def register(reg_data: RegisterReq, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserInfo, summary="获取当前用户信息")
 def get_me(
     current_user: Annotated[User, Depends(security.get_current_user)],
+    db: Session = Depends(get_db),
 ):
-    """需要携带有效的 Bearer Token，返回当前登录用户的基础信息"""
-    return current_user
+    """需要携带有效的 Bearer Token，返回当前登录用户的基础信息（含登录账号）"""
+    auth_record = auth_crud.get_auth_by_user_id(db, current_user.id)
+    return {
+        "id": current_user.id,
+        "nickname": current_user.nickname,
+        "avatar": current_user.avatar,
+        "role": current_user.role,
+        "position_desc": current_user.position_desc,
+        "permissions": current_user.permissions,
+        "is_active": current_user.is_active,
+        "created_at": current_user.created_at,
+        "updated_at": current_user.updated_at,
+        "identifier": auth_record.identifier if auth_record else None,
+    }
 
 
 @router.put("/me", response_model=UserInfo, summary="更新当前用户信息")
@@ -118,7 +132,7 @@ def upload_avatar(
     db: Session = Depends(get_db),
     file: UploadFile = File(...),
 ):
-    """上传用户头像（支持 jpg/png/gif/webp，最大 5MB）"""
+    """上传用户头像（支持 jpg/png/gif/webp，最大 5MB，自动清理旧头像文件）"""
     # 校验文件类型
     if file.content_type not in ALLOWED_AVATAR_TYPES:
         raise HTTPException(
@@ -133,6 +147,13 @@ def upload_avatar(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="头像文件大小不能超过 5MB",
         )
+
+    # 清理旧头像文件
+    if current_user.avatar and current_user.avatar.startswith("/static/avatars/"):
+        old_filename = current_user.avatar.rsplit("/", 1)[-1]
+        old_filepath = os.path.join(AVATAR_DIR, old_filename)
+        if os.path.isfile(old_filepath):
+            os.remove(old_filepath)
 
     # 生成唯一文件名
     ext = file.filename.rsplit(".", 1)[-1] if "." in (file.filename or "") else "png"
@@ -150,15 +171,64 @@ def upload_avatar(
     return {"avatar_url": avatar_url}
 
 
-# ==================== 管理员接口 ====================
-@router.get("/admin/users", response_model=list[UserListItem], summary="管理员-获取用户列表")
-def admin_list_users(
+@router.put("/me/password", summary="修改当前用户密码")
+def change_password(
+    pw_data: ChangePasswordReq,
     current_user: Annotated[User, Depends(security.get_current_user)],
     db: Session = Depends(get_db),
 ):
+    """修改当前登录用户的密码，需提供旧密码验证"""
+    auth_record = auth_crud.get_auth_by_user_id(db, current_user.id)
+    if not auth_record:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="当前账号没有密码登录方式",
+        )
+
+    # 校验旧密码
+    if not security.verify_password(pw_data.old_password, auth_record.credential):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="旧密码不正确",
+        )
+
+    # 哈希新密码并更新
+    new_hashed = security.get_password_hash(pw_data.new_password)
+    auth_crud.update_auth_credential(db, current_user.id, new_hashed)
+
+    return {"detail": "密码已更新"}
+
+
+# ==================== 管理员接口 ====================
+@router.get("/admin/users", response_model=list[UserListItem], summary="管理员-获取用户列表")
+def admin_list_users(
+        current_user: Annotated[User, Depends(security.get_current_user)],
+        db: Session = Depends(get_db),
+):
     """管理员获取所有用户列表"""
     require_admin(current_user)
-    return auth_crud.get_all_users(db)
+    users = auth_crud.get_all_users(db)  # list[User]
+
+    result = []
+    for user in users:
+        # 获取该用户的 password 登录凭证中的 identifier
+        identifier = next(
+            (auth.identifier for auth in user.auths if auth.identity_type == "password"),
+            None
+        )
+        # 构造符合 UserListItem 的字典
+        result.append({
+            "id": user.id,
+            "identifier": identifier,
+            "nickname": user.nickname,
+            "avatar": user.avatar,
+            "role": user.role,
+            "position_desc": user.position_desc,
+            "is_active": user.is_active,
+            "created_at": user.created_at,
+            "updated_at": user.updated_at,
+        })
+    return result
 
 
 @router.post("/admin/users", response_model=UserInfo, summary="管理员-创建用户")
@@ -224,3 +294,35 @@ def admin_update_user(
             detail="用户不存在",
         )
     return updated
+
+
+@router.delete("/admin/users/{user_id}", summary="管理员-删除用户")
+def admin_delete_user(
+    user_id: int,
+    current_user: Annotated[User, Depends(security.get_current_user)],
+    db: Session = Depends(get_db),
+):
+    """管理员删除用户（级联删除关联的登录凭证）"""
+    require_admin(current_user)
+
+    if user_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="不能删除自己",
+        )
+
+    # 清理被删除用户的头像文件
+    target_user = auth_crud.get_user_by_id(db, user_id)
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="用户不存在",
+        )
+    if target_user.avatar and target_user.avatar.startswith("/static/avatars/"):
+        old_filename = target_user.avatar.rsplit("/", 1)[-1]
+        old_filepath = os.path.join(AVATAR_DIR, old_filename)
+        if os.path.isfile(old_filepath):
+            os.remove(old_filepath)
+
+    auth_crud.delete_user(db, user_id)
+    return {"detail": "用户已删除"}

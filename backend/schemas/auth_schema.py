@@ -34,8 +34,14 @@ class UserInfo(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    identifier: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class ChangePasswordReq(BaseModel):
+    old_password: str = Field(..., min_length=1, description="旧密码")
+    new_password: str = Field(..., min_length=6, max_length=100, description="新密码(至少6位)")
 
 
 class UserUpdateReq(BaseModel):
@@ -62,6 +68,7 @@ class AdminUpdateUserReq(BaseModel):
 
 class UserListItem(BaseModel):
     id: int
+    identifier: str
     nickname: str
     avatar: str | None
     role: str

@@ -1,5 +1,5 @@
 # crud/auth_crud.py
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from models.user_model import User, UserAuth
 
 
@@ -26,8 +26,7 @@ def check_identifier_exists(db: Session, identifier: str) -> bool:
 
 
 def get_all_users(db: Session) -> list[User]:
-    """获取所有用户列表"""
-    return db.query(User).order_by(User.id.desc()).all()
+    return db.query(User).options(selectinload(User.auths)).order_by(User.id.desc()).all()
 
 
 # ==================== 创建 ====================
@@ -83,3 +82,34 @@ def update_user(db: Session, user_id: int, **kwargs) -> User | None:
     db.commit()
     db.refresh(user)
     return user
+
+
+def get_auth_by_user_id(db: Session, user_id: int) -> UserAuth | None:
+    """根据用户ID查询密码登录凭证"""
+    return db.query(UserAuth).filter(
+        UserAuth.user_id == user_id,
+        UserAuth.identity_type == "password"
+    ).first()
+
+
+def update_auth_credential(db: Session, user_id: int, new_credential: str) -> bool:
+    """更新用户的密码哈希"""
+    auth = db.query(UserAuth).filter(
+        UserAuth.user_id == user_id,
+        UserAuth.identity_type == "password"
+    ).first()
+    if not auth:
+        return False
+    auth.credential = new_credential
+    db.commit()
+    return True
+
+
+def delete_user(db: Session, user_id: int) -> bool:
+    """删除用户（级联删除关联的 auth 记录）"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return False
+    db.delete(user)
+    db.commit()
+    return True
