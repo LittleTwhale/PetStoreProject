@@ -1,12 +1,16 @@
 # api/auth_api.py
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from database.database import get_db  # 假设你有这个获取数据库 session 的依赖
-from schemas.auth_schema import LoginReq, TokenRes
+
+from database.database import get_db
+from schemas.auth_schema import LoginReq, TokenRes, UserInfo
 from crud import auth_crud
 from core import security
+from models.user_model import User
 
-router = APIRouter()
+router = APIRouter(tags=["认证"])
 
 
 @router.post("/login", response_model=TokenRes, summary="用户登录")
@@ -29,3 +33,11 @@ def login(login_data: LoginReq, db: Session = Depends(get_db)):
 
     # 4. 返回 Token 给前端
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.get("/me", response_model=UserInfo, summary="获取当前用户信息")
+def get_me(
+    current_user: Annotated[User, Depends(security.get_current_user)],
+):
+    """需要携带有效的 Bearer Token，返回当前登录用户的基础信息"""
+    return current_user
