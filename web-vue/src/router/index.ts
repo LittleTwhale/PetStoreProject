@@ -1,47 +1,63 @@
-// router/index.ts
 import { createRouter, createWebHistory } from 'vue-router'
-import LoginPage from '../views/LoginPage.vue' //[cite: 1]
-import ProfilePage from '../views/ProfilePage.vue' //[cite: 1]
+import LoginPage from '../views/LoginPage.vue'
+import ProfilePage from '../views/ProfilePage.vue'
+import AdminPage from '../views/AdminPage.vue'
 import MainLayout from '../layout/MainLayout.vue'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL), //[cite: 1]
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/login', //[cite: 1]
-      name: 'Login', //[cite: 1]
-      component: LoginPage, //[cite: 1]
+      path: '/login',
+      name: 'Login',
+      component: LoginPage,
       meta: { requiresAuth: false },
     },
     {
-      path: '/', //[cite: 1]
-      component: MainLayout, // 嵌套路由的核心：指向 Layout
-      redirect: '/dashboard', //[cite: 1]
+      path: '/',
+      component: MainLayout,
+      redirect: '/dashboard',
       children: [
         {
           path: 'dashboard',
           name: 'Dashboard',
-          // 你可以之后建一个 Dashboard 页面，这里先复用 Profile 作为占位
-          component: ProfilePage,
+          component: ProfilePage, // 暂时复用，后续可替换为独立 Dashboard
+          meta: { title: '数据工作台' },
         },
         {
-          path: 'profile', //[cite: 1]
-          name: 'Profile', //[cite: 1]
-          component: ProfilePage, //[cite: 1]
+          path: 'profile',
+          name: 'Profile',
+          component: ProfilePage,
+          meta: { title: '个人中心' },
+        },
+        {
+          path: 'admin',
+          name: 'Admin',
+          component: AdminPage,
+          meta: { title: '用户管理', requiresAdmin: true },
         },
       ],
     },
   ],
 })
 
-// 路由守卫：防止未登录访问后台
+// 路由守卫
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
+
+  // 未登录只能访问登录页
   if (to.path !== '/login' && !token) {
     next('/login')
-  } else {
-    next()
+    return
   }
+
+  // 已登录访问登录页 → 跳转首页
+  if (to.path === '/login' && token) {
+    next('/dashboard')
+    return
+  }
+
+  next()
 })
 
-export default router //[cite: 1]
+export default router
