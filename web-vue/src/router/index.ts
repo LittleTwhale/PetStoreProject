@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginPage from '../views/LoginPage.vue'
 import ProfilePage from '../views/ProfilePage.vue'
 import AdminPage from '../views/AdminPage.vue'
+import CustomerPage from '../views/CustomerPage.vue'
+import PetPage from '../views/PetPage.vue'
 import MainLayout from '../layout/MainLayout.vue'
 
 const router = createRouter({
@@ -35,6 +37,18 @@ const router = createRouter({
           name: 'Admin',
           component: AdminPage,
           meta: { title: '用户管理', requiresAdmin: true },
+        },
+        {
+          path: 'customers',
+          name: 'Customers',
+          component: CustomerPage,
+          meta: { title: '客户档案管理' },
+        },
+        {
+          path: 'pets',
+          name: 'Pets',
+          component: PetPage,
+          meta: { title: '宠物台账管理' },
         },
       ],
     },

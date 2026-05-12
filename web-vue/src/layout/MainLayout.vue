@@ -25,6 +25,13 @@ const menuItems = computed(() => {
     { index: '/dashboard', icon: 'Odometer', label: '数据工作台' },
     { index: '/profile', icon: 'UserFilled', label: '个人中心' },
   ]
+  // 管理员和店员都可以使用客户与宠物管理
+  if (userStore.user?.role === 'admin' || userStore.user?.role === 'staff') {
+    items.push(
+      { index: '/customers', icon: 'UserFilled', label: '客户档案' },
+      { index: '/pets', icon: 'Present', label: '宠物台账' },
+    )
+  }
   if (userStore.user?.role === 'admin') {
     items.push({ index: '/admin', icon: 'Setting', label: '用户管理' })
   }
