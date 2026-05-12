@@ -6,6 +6,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 
 from api.auth_api import router as auth_router
+from api.customer_api import router as customer_router
+from api.pet_api import router as pet_router
 
 app = FastAPI(title="PetStore API", version="1.0.0")
 
@@ -28,6 +30,8 @@ api_router = APIRouter(prefix="/api")
 
 # 将各模块的路由注册到总路由下
 api_router.include_router(auth_router, prefix="/auth")
+api_router.include_router(customer_router, prefix="/customers")
+api_router.include_router(pet_router, prefix="/pets")
 
 # 将总路由注册到 app
 app.include_router(api_router)

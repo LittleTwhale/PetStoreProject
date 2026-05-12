@@ -26,16 +26,6 @@ ALLOWED_AVATAR_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5MB
 
 
-def require_admin(current_user: User) -> User:
-    """检查当前用户是否为管理员"""
-    if current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="权限不足，仅管理员可执行此操作",
-        )
-    return current_user
-
-
 # ==================== 登录 & 注册 ====================
 @router.post("/login", response_model=TokenRes, summary="用户登录")
 def login(login_data: LoginReq, db: Session = Depends(get_db)):
@@ -206,7 +196,7 @@ def admin_list_users(
         db: Session = Depends(get_db),
 ):
     """管理员获取所有用户列表"""
-    require_admin(current_user)
+    security.require_admin(current_user)
     users = auth_crud.get_all_users(db)  # list[User]
 
     result = []
@@ -238,7 +228,7 @@ def admin_create_user(
     db: Session = Depends(get_db),
 ):
     """管理员创建新用户"""
-    require_admin(current_user)
+    security.require_admin(current_user)
 
     if auth_crud.check_identifier_exists(db, identifier=user_data.identifier):
         raise HTTPException(
@@ -272,7 +262,7 @@ def admin_update_user(
     db: Session = Depends(get_db),
 ):
     """管理员更新用户信息（角色、状态、权限等）"""
-    require_admin(current_user)
+    security.require_admin(current_user)
 
     # 构建更新字段
     update_kwargs = {}
@@ -303,7 +293,7 @@ def admin_delete_user(
     db: Session = Depends(get_db),
 ):
     """管理员删除用户（级联删除关联的登录凭证）"""
-    require_admin(current_user)
+    security.require_admin(current_user)
 
     if user_id == current_user.id:
         raise HTTPException(

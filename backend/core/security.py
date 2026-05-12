@@ -58,6 +58,26 @@ def decode_access_token(token: str) -> dict:
         )
 
 
+def require_admin(user: User) -> User:
+    """检查当前用户是否为管理员，否则抛出403"""
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="权限不足，仅管理员可执行此操作",
+        )
+    return user
+
+
+def require_admin_or_staff(user: User) -> User:
+    """检查当前用户是否为管理员或店员，否则抛出403"""
+    if user.role not in ("admin", "staff"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="权限不足，仅管理员和店员可执行此操作",
+        )
+    return user
+
+
 def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security_scheme)],
     db: Session = Depends(get_db),

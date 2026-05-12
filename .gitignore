@@ -37,3 +37,4 @@ miniapp/.env.local
 *.sln
 *.sw?
 .claude/
+CLAUDE.md
