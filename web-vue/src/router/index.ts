@@ -74,6 +74,18 @@ const router = createRouter({
           component: () => import('../views/InventoryLogPage.vue'),
           meta: { title: '库存流水明细' },
         },
+        {
+          path: 'products',
+          name: 'Products',
+          component: () => import('../views/ProductPage.vue'),
+          meta: { title: '商品管理' },
+        },
+        {
+          path: 'services',
+          name: 'Services',
+          component: () => import('../views/ServicePage.vue'),
+          meta: { title: '服务管理' },
+        },
       ],
     },
   ],

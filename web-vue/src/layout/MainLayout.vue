@@ -50,6 +50,8 @@ const menuItems = computed(() => {
       { index: '/pets', icon: 'Present', label: '宠物台账' },
       { index: '/inventory-items', icon: 'Goods', label: '库存物品' },
       { index: '/inventory-logs', icon: 'Document', label: '库存流水' },
+      { index: '/products', icon: 'Present', label: '商品管理' },
+      { index: '/services', icon: 'Scissor', label: '服务管理' },
     )
   }
   if (userStore.user?.role === 'admin') {
