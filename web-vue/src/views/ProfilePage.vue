@@ -837,4 +837,90 @@ const roleColor = (role: string) => {
     transform: translateY(0);
   }
 }
+
+/* ========== 响应式适配 ========== */
+@media (max-width: 767px) {
+  .profile-page {
+    padding: 12px 0;
+    gap: 16px;
+  }
+
+  .hero-bg {
+    height: 80px;
+  }
+
+  .hero-content {
+    padding: 0 16px 20px;
+    margin-top: -36px;
+  }
+
+  .avatar-section {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .profile-avatar {
+    width: 88px !important;
+    height: 88px !important;
+  }
+
+  .hero-name {
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+
+  .hero-meta {
+    justify-content: center;
+  }
+
+  /* 详情卡片 */
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .edit-actions {
+    width: 100%;
+  }
+
+  .card-body {
+    padding: 20px;
+  }
+
+  .info-form {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-header {
+    padding: 16px;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+
+  :deep(.info-form .el-form-item) {
+    padding: 12px 0;
+  }
+
+  :deep(.el-form-item__label) {
+    font-size: 13px;
+  }
+
+  .action-btn {
+    font-size: 12px;
+    padding: 8px 16px;
+  }
+}
 </style>

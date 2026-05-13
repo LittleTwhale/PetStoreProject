@@ -602,4 +602,62 @@ const handleDelete = async (customer: CustomerProfile) => {
 :deep(.el-table .el-table__row:hover > td) {
   background-color: #f5f7fa !important;
 }
+
+/* ========== 响应式适配 ========== */
+@media (max-width: 1024px) {
+  .customer-page {
+    max-width: 100%;
+  }
+
+  .stats-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .page-header .el-button {
+    width: 100%;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-num {
+    font-size: 20px;
+  }
+
+  .toolbar {
+    flex-direction: column;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

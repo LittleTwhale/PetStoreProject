@@ -516,4 +516,46 @@ const handleUnbindUser = async (userId: number) => {
 :deep(.el-table .el-table__row:hover > td) {
   background-color: #f5f7fa !important;
 }
+
+/* ========== 响应式适配 ========== */
+@media (max-width: 767px) {
+  .store-page {
+    max-width: 100%;
+  }
+
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .page-header .el-button {
+    width: 100%;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .toolbar {
+    flex-direction: column;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .bind-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bind-row .el-input-number {
+    width: 100% !important;
+  }
+}
 </style>

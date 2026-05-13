@@ -510,4 +510,101 @@ const switchTab = (tab: 'login' | 'register') => {
   opacity: 0;
   transform: translateX(-20px);
 }
+
+/* ========== 响应式适配 ========== */
+/* 平板尺寸：缩小卡片宽度 */
+@media (max-width: 960px) {
+  .auth-card {
+    width: 90%;
+    min-height: auto;
+  }
+
+  .brand-panel {
+    width: 320px;
+    padding: 36px;
+  }
+
+  .brand-name {
+    font-size: 26px;
+  }
+
+  .form-panel {
+    padding: 32px 36px;
+  }
+}
+
+/* 手机尺寸：纵向堆叠，隐藏左侧品牌区 */
+@media (max-width: 767px) {
+  .login-page {
+    padding: 16px;
+    align-items: flex-start;
+    padding-top: 40px;
+  }
+
+  .auth-card {
+    flex-direction: column;
+    width: 100%;
+    min-height: auto;
+    border-radius: 16px;
+  }
+
+  .brand-panel {
+    width: 100%;
+    padding: 24px;
+    background: linear-gradient(135deg, #409eff 0%, #337ecc 100%);
+  }
+
+  .brand-content {
+    text-align: center;
+  }
+
+  .brand-icon {
+    margin-bottom: 8px;
+    padding: 10px;
+  }
+
+  .brand-name {
+    font-size: 22px;
+  }
+
+  .brand-desc {
+    font-size: 12px;
+    margin-bottom: 0;
+  }
+
+  .brand-features {
+    display: none;
+  }
+
+  .form-panel {
+    padding: 24px 20px;
+  }
+
+  .form-title {
+    font-size: 20px;
+  }
+
+  .tab-header {
+    margin-bottom: 20px;
+  }
+}
+
+/* 小手机尺寸 */
+@media (max-width: 400px) {
+  .brand-panel {
+    padding: 16px;
+  }
+
+  .brand-name {
+    font-size: 18px;
+  }
+
+  .brand-desc {
+    display: none;
+  }
+
+  .form-panel {
+    padding: 20px 16px;
+  }
+}
 </style>

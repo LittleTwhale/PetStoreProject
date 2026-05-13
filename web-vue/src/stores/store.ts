@@ -19,7 +19,10 @@ export const useStoreStore = defineStore('store', () => {
       myStores.value = res.data
       // 如果当前没有选中门店且有门店列表，自动选第一个
       if (!currentStoreId.value && myStores.value.length > 0) {
-        switchStore(myStores.value[0].id)
+        const firstStore = myStores.value[0]
+        if (firstStore) {
+          switchStore(firstStore.id)
+        }
       }
     } catch {
       myStores.value = []

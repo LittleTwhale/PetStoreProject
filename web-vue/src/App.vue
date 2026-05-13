@@ -61,4 +61,22 @@ body,
 .el-card {
   border-radius: 12px !important;
 }
+
+/* ========== 全局响应式：移动端弹窗适配 ========== */
+@media (max-width: 767px) {
+  .el-dialog {
+    width: 90% !important;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .el-dialog .el-dialog__body {
+    padding: 16px;
+  }
+
+  .el-message-box {
+    width: 85% !important;
+    max-width: 400px;
+  }
+}
 </style>

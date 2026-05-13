@@ -506,4 +506,38 @@ const handleDelete = async (user: UserItem) => {
 :deep(.el-table .el-table__row:hover > td) {
   background-color: #f5f7fa !important;
 }
+
+/* ========== 响应式适配 ========== */
+@media (max-width: 767px) {
+  .admin-page {
+    max-width: 100%;
+  }
+
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .page-header .el-button {
+    width: 100%;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
 </style>

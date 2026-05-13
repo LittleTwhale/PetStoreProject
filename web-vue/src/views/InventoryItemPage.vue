@@ -480,4 +480,53 @@ const handleStockOut = async () => {
 
 .stock-info { background: #f5f7fa; padding: 12px 16px; border-radius: 8px; }
 .stock-info p { margin: 4px 0; font-size: 14px; }
+
+/* ========== 响应式适配 ========== */
+@media (max-width: 1024px) {
+  .page-root { max-width: 100%; }
+  .stats-row { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .stat-card { padding: 16px; }
+  .stat-num { font-size: 20px; }
+}
+
+@media (max-width: 767px) {
+  .page-header { flex-direction: column; gap: 12px; }
+  .page-header .el-button { width: 100%; }
+  .page-title { font-size: 20px; }
+
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .stat-card { padding: 12px 16px; gap: 12px; }
+  .stat-icon { width: 40px; height: 40px; }
+  .stat-num { font-size: 18px; }
+
+  .toolbar {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .filter-group {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .search-input { width: 100%; }
+  .filter-select { width: 100%; }
+
+  .filter-group .el-checkbox {
+    margin-left: 0;
+  }
+
+  .table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-row { grid-template-columns: 1fr; }
+}
 </style>

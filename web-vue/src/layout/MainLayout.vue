@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useStoreStore } from '@/stores/store'
@@ -12,6 +12,7 @@ const storeStore = useStoreStore()
 
 const isCollapse = ref(false)
 const isMobile = ref(window.innerWidth < 768)
+const mobileMenuOpen = ref(false)
 
 window.addEventListener('resize', () => {
   isMobile.value = window.innerWidth < 768
@@ -19,8 +20,23 @@ window.addEventListener('resize', () => {
 })
 
 const toggleSidebar = () => {
-  isCollapse.value = !isCollapse.value
+  if (isMobile.value) {
+    mobileMenuOpen.value = !mobileMenuOpen.value
+  } else {
+    isCollapse.value = !isCollapse.value
+  }
 }
+
+const closeMobileMenu = () => {
+  mobileMenuOpen.value = false
+}
+
+// 移动端路由切换后自动关闭侧栏
+watch(() => route.path, () => {
+  if (isMobile.value) {
+    mobileMenuOpen.value = false
+  }
+})
 
 const menuItems = computed(() => {
   const items = [
@@ -74,7 +90,18 @@ onMounted(async () => {
 <template>
   <el-container class="layout-container">
     <!-- 侧边栏 -->
-    <el-aside :width="isCollapse ? '64px' : '220px'" class="aside">
+    <!-- 移动端遮罩层 -->
+    <div
+      v-if="isMobile && mobileMenuOpen"
+      class="mobile-overlay"
+      @click="closeMobileMenu"
+    ></div>
+
+    <el-aside
+      :width="isCollapse && !isMobile ? '64px' : '220px'"
+      class="aside"
+      :class="{ 'mobile-open': isMobile && mobileMenuOpen }"
+    >
       <!-- Logo 区域 -->
       <div class="logo-area" :class="{ collapsed: isCollapse }">
         <el-icon :size="28" color="#fff">
@@ -116,22 +143,39 @@ onMounted(async () => {
       <!-- 顶部栏 -->
       <el-header class="top-header">
         <div class="header-left">
+          <!-- 移动端汉堡菜单按钮 -->
           <el-button
+            v-if="isMobile"
+            class="hamburger-btn"
+            text
+            @click="toggleSidebar"
+          >
+            <el-icon :size="22">
+              <component :is="mobileMenuOpen ? 'Close' : 'Menu'" />
+            </el-icon>
+          </el-button>
+          <!-- 桌面端折叠按钮 -->
+          <el-button
+            v-else
             class="collapse-btn"
             :icon="isCollapse ? 'Expand' : 'Fold'"
             text
             @click="toggleSidebar"
           />
-          <el-breadcrumb separator="/">
+          <!-- 移动端隐藏面包屑 -->
+          <el-breadcrumb v-if="!isMobile" separator="/">
             <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
             <el-breadcrumb-item v-if="route.path !== '/'">
               {{ route.meta.title || route.name }}
             </el-breadcrumb-item>
           </el-breadcrumb>
+          <span v-else class="mobile-page-title">
+            {{ route.meta.title || route.name || '非诚勿宠' }}
+          </span>
         </div>
 
         <div class="header-right">
-          <!-- 门店切换器（店员可见） -->
+          <!-- 门店切换器 -->
           <el-select
             v-if="userStore.user?.role === 'staff' || userStore.user?.role === 'admin'"
             :model-value="storeStore.currentStoreId"
@@ -358,7 +402,87 @@ onMounted(async () => {
   flex: 1;
 }
 
+/* ========== 移动端样式 ========== */
+/* 遮罩层 */
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+  animation: fadeIn 0.3s ease;
+}
+
+/* 移动端侧边栏弹出 */
+.aside.mobile-open {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 100;
+  width: 220px !important;
+  animation: slideIn 0.3s ease;
+}
+
+/* 移动端默认隐藏侧边栏 */
+@media (max-width: 767px) {
+  .aside:not(.mobile-open) {
+    display: none;
+  }
+}
+
+/* 移动端汉堡按钮 */
+.hamburger-btn {
+  color: #606266;
+}
+
+/* 移动端页面标题 */
+.mobile-page-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+/* 响应式顶部栏 */
+@media (max-width: 767px) {
+  .top-header {
+    padding: 0 12px;
+  }
+
+  .header-right {
+    gap: 8px;
+  }
+
+  .store-switcher {
+    width: 130px;
+  }
+
+  .user-name {
+    display: none;
+  }
+
+  .arrow-icon {
+    display: none;
+  }
+}
+
+/* 响应式内容区 */
+@media (max-width: 767px) {
+  .main-content {
+    padding: 12px;
+  }
+}
+
 /* ========== 动画 ========== */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s;
