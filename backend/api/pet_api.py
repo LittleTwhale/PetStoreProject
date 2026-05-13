@@ -19,14 +19,15 @@ VALID_OWNERSHIP_TYPES = {"customer", "for_sale", "store_mascot"}
 def read_pets(
     ownership_type: Optional[str] = Query(None, description="过滤归属类型: customer / for_sale / store_mascot"),
     owner_id: Optional[int] = Query(None, description="按主人ID过滤（查看某客户名下全部宠物）"),
+    store_id: Optional[int] = Query(None, description="按门店ID过滤"),
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """获取宠物列表，支持按归属类型和主人ID过滤"""
+    """获取宠物列表，支持按归属类型、主人ID和门店过滤"""
     security.require_admin_or_staff(current_user)
-    pets = pet_crud.get_pets(db, ownership_type=ownership_type, owner_id=owner_id, skip=skip, limit=limit)
+    pets = pet_crud.get_pets(db, ownership_type=ownership_type, owner_id=owner_id, store_id=store_id, skip=skip, limit=limit)
     return pets
 
 

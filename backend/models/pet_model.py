@@ -33,5 +33,6 @@ class Pet(Base):
 
     avatar = Column(String(255), nullable=True, comment="宠物照片URL")
     special_notes = Column(String(500), nullable=True, comment="特殊注意事项")
+    store_id = Column(Integer, ForeignKey("stores.id", ondelete="SET NULL"), nullable=True, comment="所属门店")
 
     owner = relationship("CustomerProfile", back_populates="pets")

@@ -12,6 +12,7 @@ class CustomerProfileBase(BaseModel):
     membership_level: Optional[str] = "普通会员"
     points: Optional[int] = 0
     balance: Optional[float] = 0.0
+    store_id: Optional[int] = None
 
 
 class CustomerProfileCreate(CustomerProfileBase):
@@ -25,6 +26,7 @@ class CustomerProfileUpdate(CustomerProfileBase):
 class CustomerProfileResponse(CustomerProfileBase):
     id: int
     user_id: int
+    store_id: Optional[int] = None
     pets: List[PetResponse] = []  # 嵌套显示名下宠物
 
     model_config = ConfigDict(from_attributes=True)

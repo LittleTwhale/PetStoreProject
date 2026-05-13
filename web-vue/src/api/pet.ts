@@ -4,6 +4,7 @@ import api from './index'
 export interface PetInfo {
   id: number
   owner_id: number | null
+  store_id: number | null
   name: string | null
   species: string
   breed: string | null
@@ -19,10 +20,11 @@ export interface PetInfo {
 }
 
 export const petApi = {
-  /** 获取宠物列表，支持按归属类型、主人ID过滤和分页 */
+  /** 获取宠物列表，支持按归属类型、主人ID、门店过滤和分页 */
   list: (params?: {
     ownership_type?: string
     owner_id?: number
+    store_id?: number
     skip?: number
     limit?: number
   }) => api.get('/pets/', { params }),
@@ -45,6 +47,7 @@ export const petApi = {
     ownership_type?: string
     price?: number | null
     owner_id?: number | null
+    store_id?: number | null
   }) => api.post('/pets/', data),
 
   /** 更新宠物信息 */
@@ -64,6 +67,7 @@ export const petApi = {
       ownership_type?: string
       price?: number | null
       owner_id?: number | null
+      store_id?: number | null
     },
   ) => api.put(`/pets/${id}`, data),
 

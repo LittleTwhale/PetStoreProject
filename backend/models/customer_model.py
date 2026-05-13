@@ -20,6 +20,7 @@ class CustomerProfile(Base):
     membership_level = Column(String(20), default="普通会员", comment="会员等级")
     points = Column(Integer, default=0, comment="积分")
     balance = Column(Float, default=0.0, comment="账户余额")
+    store_id = Column(Integer, ForeignKey("stores.id", ondelete="SET NULL"), nullable=True, comment="所属门店")
 
     # 关联
     user = relationship("User", backref="customer_profile")

@@ -21,10 +21,14 @@ class PetBase(BaseModel):
     ownership_type: str = "customer"  # customer, for_sale, store_mascot
     price: Optional[float] = None
 
+    # 所属门店
+    store_id: Optional[int] = None
+
 
 class PetCreate(PetBase):
     """创建宠物时，owner_id 可选（店内宠物不需要主人）"""
     owner_id: Optional[int] = None
+    store_id: Optional[int] = None
 
 
 class PetUpdate(BaseModel):
@@ -42,11 +46,13 @@ class PetUpdate(BaseModel):
     ownership_type: Optional[str] = None
     price: Optional[float] = None
     owner_id: Optional[int] = None
+    store_id: Optional[int] = None
 
 
 class PetResponse(PetBase):
     """返回宠物信息（含ID和主人ID）"""
     id: int
     owner_id: Optional[int] = None
+    store_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)

@@ -9,15 +9,18 @@ def get_pets(
     db: Session,
     ownership_type: Optional[str] = None,
     owner_id: Optional[int] = None,
+    store_id: Optional[int] = None,
     skip: int = 0,
     limit: int = 100,
 ):
-    """获取宠物列表，支持按归属类型和主人ID过滤"""
+    """获取宠物列表，支持按归属类型、主人ID和门店过滤"""
     query = db.query(Pet)
     if ownership_type:
         query = query.filter(Pet.ownership_type == ownership_type)
     if owner_id is not None:
         query = query.filter(Pet.owner_id == owner_id)
+    if store_id is not None:
+        query = query.filter(Pet.store_id == store_id)
     return query.offset(skip).limit(limit).all()
 
 

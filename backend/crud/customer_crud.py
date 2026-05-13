@@ -4,16 +4,18 @@ from models.customer_model import CustomerProfile
 from schemas.customer_schema import CustomerProfileCreate, CustomerProfileUpdate
 
 
-def get_customers(db: Session, skip: int = 0, limit: int = 100, search: str | None = None):
-    """获取客户列表，支持分页和按姓名/电话搜索"""
+def get_customers(db: Session, skip: int = 0, limit: int = 100, search: str | None = None,
+                   store_id: int | None = None):
+    """获取客户列表，支持分页、按姓名/电话搜索和门店过滤"""
     query = db.query(CustomerProfile)
     if search:
-        # 按真实姓名或电话号码模糊搜索
         like_pattern = f"%{search}%"
         query = query.filter(
             (CustomerProfile.real_name.like(like_pattern)) |
             (CustomerProfile.phone.like(like_pattern))
         )
+    if store_id is not None:
+        query = query.filter(CustomerProfile.store_id == store_id)
     return query.offset(skip).limit(limit).all()
 
 

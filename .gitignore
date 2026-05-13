@@ -8,6 +8,7 @@ backend/*.pyc
 backend/.env
 backend/.pytest_cache/
 **/__pycache__/
+backend/alembic/__pycache__/
 
 # =========================
 # 2. Node & Vue3 (PC网页端 web-vue)
@@ -38,3 +39,4 @@ miniapp/.env.local
 *.sw?
 .claude/
 CLAUDE.md
+task.md

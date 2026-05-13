@@ -4,6 +4,7 @@ import api from './index'
 export interface CustomerProfile {
   id: number
   user_id: number
+  store_id: number | null
   real_name: string | null
   phone: string | null
   address: string | null
@@ -14,8 +15,8 @@ export interface CustomerProfile {
 }
 
 export const customerApi = {
-  /** 获取客户列表，支持搜索和分页 */
-  list: (params?: { search?: string; skip?: number; limit?: number }) =>
+  /** 获取客户列表，支持搜索、门店过滤和分页 */
+  list: (params?: { search?: string; store_id?: number; skip?: number; limit?: number }) =>
     api.get('/customers/', { params }),
 
   /** 获取单个客户详情 */
@@ -30,6 +31,7 @@ export const customerApi = {
     membership_level?: string
     points?: number
     balance?: number
+    store_id?: number
   }) => api.post('/customers/', data),
 
   /** 更新客户档案 */

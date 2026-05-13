@@ -17,6 +17,8 @@ from database.database import Base
 from models.user_model import User, UserAuth # 必须把模型导入进来，Alembic 才能读取到结构
 from models.customer_model import CustomerProfile
 from models.pet_model import Pet
+from models.store_model import Store, UserStore
+from models.inventory_model import InventoryCategory, InventoryItem, InventoryLog
 
 # 覆盖 alembic.ini 中的 sqlalchemy.url 配置，使用我们在 config.py 中动态生成的 URL
 config = context.config

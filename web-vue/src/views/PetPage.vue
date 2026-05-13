@@ -12,6 +12,9 @@ import {
   Money,
 } from '@element-plus/icons-vue'
 import { petApi, type PetInfo } from '@/api/pet'
+import { useStoreStore } from '@/stores/store'
+
+const storeStore = useStoreStore()
 
 // ========== 常量 ==========
 const SPECIES_OPTIONS = ['狗', '猫', '兔', '仓鼠', '龙猫', '豚鼠', '鸟', '鱼', '龟', '蛇', '蜥蜴', '其他']
@@ -109,6 +112,7 @@ const fetchPets = async () => {
     const params: Record<string, unknown> = { limit: 500 }
     if (filterOwnership.value) params.ownership_type = filterOwnership.value
     if (filterOwnerId.value) params.owner_id = filterOwnerId.value
+    if (storeStore.currentStoreId) params.store_id = storeStore.currentStoreId
     const res = await petApi.list(params)
     pets.value = res.data
   } catch (err: unknown) {
@@ -194,6 +198,7 @@ const handleCreate = async () => {
       ownership_type: createForm.ownership_type,
       price: createForm.ownership_type === 'for_sale' ? createForm.price : null,
       owner_id: createForm.ownership_type === 'customer' ? createForm.owner_id : null,
+      store_id: storeStore.currentStoreId ?? null,
     })
     ElMessage.success('宠物档案已录入')
     createDialogVisible.value = false

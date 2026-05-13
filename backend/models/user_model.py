@@ -27,6 +27,9 @@ class User(Base):
     # 建立与授权表的关联 (一对多：一个用户可以有多种登录方式)
     auths = relationship("UserAuth", back_populates="user", cascade="all, delete-orphan")
 
+    # 用户-门店绑定 (一对多)
+    user_stores = relationship("UserStore", back_populates="user", cascade="all, delete-orphan")
+
 # 用户登录授权表
 class UserAuth(Base):
     __tablename__ = "user_auths"

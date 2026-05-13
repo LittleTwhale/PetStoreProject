@@ -2,11 +2,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useStoreStore } from '@/stores/store'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const storeStore = useStoreStore()
 
 const isCollapse = ref(false)
 const isMobile = ref(window.innerWidth < 768)
@@ -30,10 +32,16 @@ const menuItems = computed(() => {
     items.push(
       { index: '/customers', icon: 'UserFilled', label: '客户档案' },
       { index: '/pets', icon: 'Present', label: '宠物台账' },
+      { index: '/inventory-items', icon: 'Goods', label: '库存物品' },
+      { index: '/inventory-logs', icon: 'Document', label: '库存流水' },
     )
   }
   if (userStore.user?.role === 'admin') {
-    items.push({ index: '/admin', icon: 'Setting', label: '用户管理' })
+    items.push(
+      { index: '/admin', icon: 'Setting', label: '用户管理' },
+      { index: '/stores', icon: 'Shop', label: '门店管理' },
+      { index: '/inventory-categories', icon: 'Collection', label: '库存分类' },
+    )
   }
   return items
 })
@@ -55,6 +63,10 @@ onMounted(async () => {
     } catch {
       router.push('/login')
     }
+  }
+  // 店员/管理员登录后加载门店列表
+  if (userStore.user?.role === 'staff' || userStore.user?.role === 'admin') {
+    storeStore.fetchMyStores()
   }
 })
 </script>
@@ -119,6 +131,25 @@ onMounted(async () => {
         </div>
 
         <div class="header-right">
+          <!-- 门店切换器（店员可见） -->
+          <el-select
+            v-if="userStore.user?.role === 'staff' || userStore.user?.role === 'admin'"
+            :model-value="storeStore.currentStoreId"
+            placeholder="选择门店"
+            class="store-switcher"
+            size="small"
+            @change="(val: number) => storeStore.switchStore(val)"
+          >
+            <el-option
+              v-for="s in storeStore.myStores"
+              :key="s.id"
+              :label="s.name"
+              :value="s.id"
+            >
+              <span>{{ s.name }}</span>
+              <span style="color: #909399; font-size: 12px; margin-left: 6px">{{ s.code }}</span>
+            </el-option>
+          </el-select>
           <!-- 用户信息 -->
           <el-dropdown trigger="click" @command="handleCommand">
             <div class="user-area">
@@ -283,6 +314,11 @@ onMounted(async () => {
 .header-right {
   display: flex;
   align-items: center;
+  gap: 16px;
+}
+
+.store-switcher {
+  width: 180px;
 }
 
 .user-area {

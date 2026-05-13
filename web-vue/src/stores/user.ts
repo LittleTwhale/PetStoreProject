@@ -13,6 +13,7 @@ export interface UserInfo {
   created_at: string
   updated_at: string
   identifier: string | null
+  store_id?: number | null
 }
 
 export const useUserStore = defineStore('user', () => {

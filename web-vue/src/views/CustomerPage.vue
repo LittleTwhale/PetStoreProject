@@ -14,6 +14,9 @@ import {
   Money,
 } from '@element-plus/icons-vue'
 import { customerApi, type CustomerProfile } from '@/api/customer'
+import { useStoreStore } from '@/stores/store'
+
+const storeStore = useStoreStore()
 
 // ========== 数据状态 ==========
 const customers = ref<CustomerProfile[]>([])
@@ -74,7 +77,10 @@ const membershipTagType = (level: string) => {
 const fetchCustomers = async () => {
   isLoading.value = true
   try {
-    const res = await customerApi.list({ limit: 500 })
+    const res = await customerApi.list({
+      limit: 500,
+      store_id: storeStore.currentStoreId ?? undefined,
+    })
     customers.value = res.data
   } catch (err: unknown) {
     ElMessage.error(
@@ -131,6 +137,7 @@ const handleCreate = async () => {
       membership_level: createForm.membership_level,
       points: createForm.points,
       balance: createForm.balance,
+      store_id: storeStore.currentStoreId ?? undefined,
     })
     ElMessage.success('客户档案创建成功')
     createDialogVisible.value = false

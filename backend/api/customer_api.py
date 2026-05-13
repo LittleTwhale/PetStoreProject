@@ -15,14 +15,15 @@ router = APIRouter(tags=["客户档案管理 (Admin/Staff)"])
 @router.get("/", response_model=List[CustomerProfileResponse])
 def read_customers(
     search: Optional[str] = Query(None, description="按客户姓名或电话模糊搜索"),
+    store_id: Optional[int] = Query(None, description="按门店ID过滤"),
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """获取客户列表（包含名下宠物），支持按姓名/电话搜索"""
+    """获取客户列表（包含名下宠物），支持按姓名/电话搜索和门店过滤"""
     security.require_admin_or_staff(current_user)
-    customers = customer_crud.get_customers(db, skip=skip, limit=limit, search=search)
+    customers = customer_crud.get_customers(db, skip=skip, limit=limit, search=search, store_id=store_id)
     return customers
 
 
