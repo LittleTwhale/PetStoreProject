@@ -52,6 +52,7 @@ const menuItems = computed(() => {
       { index: '/inventory-logs', icon: 'Document', label: '库存流水' },
       { index: '/products', icon: 'Present', label: '商品管理' },
       { index: '/services', icon: 'Scissor', label: '服务管理' },
+      { index: '/orders', icon: 'Document', label: '订单管理' },
     )
   }
   if (userStore.user?.role === 'admin') {

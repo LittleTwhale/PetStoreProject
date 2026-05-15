@@ -23,7 +23,7 @@ const router = createRouter({
         {
           path: 'dashboard',
           name: 'Dashboard',
-          component: ProfilePage, // 暂时复用，后续可替换为独立 Dashboard
+          component: () => import('../views/DashboardPage.vue'),
           meta: { title: '数据工作台' },
         },
         {
@@ -85,6 +85,18 @@ const router = createRouter({
           name: 'Services',
           component: () => import('../views/ServicePage.vue'),
           meta: { title: '服务管理' },
+        },
+        {
+          path: 'orders',
+          name: 'Orders',
+          component: () => import('../views/OrderPage.vue'),
+          meta: { title: '订单管理' },
+        },
+        {
+          path: 'orders/create',
+          name: 'OrderCreate',
+          component: () => import('../views/OrderCreatePage.vue'),
+          meta: { title: '创建订单' },
         },
       ],
     },

@@ -21,6 +21,7 @@ from models.store_model import Store, UserStore
 from models.inventory_model import InventoryCategory, InventoryItem, InventoryLog
 from models.product_model import Product
 from models.service_model import Service
+from models.order_model import Order, OrderItem
 
 # 覆盖 alembic.ini 中的 sqlalchemy.url 配置，使用我们在 config.py 中动态生成的 URL
 config = context.config

@@ -12,6 +12,8 @@ from api.store_api import router as store_router
 from api.inventory_api import router as inventory_router
 from api.product_api import router as product_router
 from api.service_api import router as service_router
+from api.order_api import router as order_router
+from api.dashboard_api import router as dashboard_router
 
 app = FastAPI(title="PetStore API", version="1.0.0")
 
@@ -40,6 +42,8 @@ api_router.include_router(store_router, prefix="/stores")
 api_router.include_router(inventory_router, prefix="/inventory")
 api_router.include_router(product_router, prefix="/products")
 api_router.include_router(service_router, prefix="/services")
+api_router.include_router(order_router, prefix="/orders")
+api_router.include_router(dashboard_router, prefix="/dashboard")
 
 # 将总路由注册到 app
 app.include_router(api_router)
