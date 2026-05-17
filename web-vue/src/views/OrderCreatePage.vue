@@ -68,6 +68,7 @@ const removeRow = (idx: number) => {
 // 选择商品
 const onProductSelect = (idx: number, productId: number) => {
   const row = items.value[idx]
+  if (!row) return
   row.productId = productId
   row.serviceId = null
   const p = products.value.find(x => x.id === productId)
@@ -83,6 +84,7 @@ const onProductSelect = (idx: number, productId: number) => {
 // 选择服务
 const onServiceSelect = (idx: number, serviceId: number) => {
   const row = items.value[idx]
+  if (!row) return
   row.serviceId = serviceId
   row.productId = null
   row.itemType = 'service'
@@ -98,6 +100,7 @@ const onServiceSelect = (idx: number, serviceId: number) => {
 // 数量/单价变化时重算小计
 const recalcSubtotal = (idx: number) => {
   const row = items.value[idx]
+  if (!row) return
   if (row.quantity > row.maxStock && row.itemType === 'product' && row.maxStock > 0) {
     row.quantity = row.maxStock
     ElMessage.warning('数量不可超过库存')
@@ -117,8 +120,8 @@ const loadDropdownData = async () => {
       serviceApi.list({ limit: 500, store_id: storeStore.currentStoreId ?? undefined }),
       customerApi.list({ limit: 500 }),
     ])
-    products.value = pRes.data.filter(p => p.is_active)
-    services.value = sRes.data.filter(s => s.is_active)
+    products.value = pRes.data.filter((p: Product) => p.is_active)
+    services.value = sRes.data.filter((s: Service) => s.is_active)
     customers.value = cRes.data.map(
       (c: { id: number; real_name: string | null; phone: string | null }) => ({
         id: c.id,

@@ -25,8 +25,11 @@ export const useStoreStore = defineStore('store', () => {
   }
 
   // staff 用户强制使用绑定门店
-  if (userStore.user?.role === 'staff' && userStore.user?.bound_store_id) {
-    initialId = userStore.user.bound_store_id
+  if (userStore.user?.role === 'staff') {
+    const boundId = userStore.user?.bound_store_id
+    if (boundId) {
+      initialId = boundId
+    }
   }
 
   // 3. 初始化 ref
@@ -52,8 +55,10 @@ export const useStoreStore = defineStore('store', () => {
         const res = await storeApi.my()
         myStores.value = res.data
         // staff 自动选中第一个绑定门店
-        if (myStores.value.length > 0 && currentStoreId.value === null) {
-          switchStore(myStores.value[0].id)
+        // 使用 ?. 防止严格模式下 [0] 报 undefined
+        const firstStoreId = myStores.value[0]?.id
+        if (firstStoreId) {
+          switchStore(firstStoreId)
         }
       } else {
         const res = await storeApi.list({ limit: 500 })
