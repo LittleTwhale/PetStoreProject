@@ -16,7 +16,7 @@ class CustomerProfileBase(BaseModel):
 
 
 class CustomerProfileCreate(CustomerProfileBase):
-    user_id: int  # 关联的基础用户ID
+    user_id: Optional[int] = None  # 关联的基础用户ID（可选）
 
 
 class CustomerProfileUpdate(CustomerProfileBase):
@@ -25,7 +25,7 @@ class CustomerProfileUpdate(CustomerProfileBase):
 
 class CustomerProfileResponse(CustomerProfileBase):
     id: int
-    user_id: int
+    user_id: Optional[int] = None
     store_id: Optional[int] = None
     pets: List[PetResponse] = []  # 嵌套显示名下宠物
 

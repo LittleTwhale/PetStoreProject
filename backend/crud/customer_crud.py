@@ -30,12 +30,13 @@ def get_customer_by_user_id(db: Session, user_id: int):
 
 
 def create_customer(db: Session, customer: CustomerProfileCreate):
-    """创建客户档案，如 user_id 已被建档则抛出异常"""
-    existing = db.query(CustomerProfile).filter(
-        CustomerProfile.user_id == customer.user_id
-    ).first()
-    if existing:
-        raise ValueError(f"用户ID {customer.user_id} 已关联客户档案，不允许重复建档")
+    """创建客户档案，user_id 可选；如提供了 user_id 且已被建档则抛出异常"""
+    if customer.user_id is not None:
+        existing = db.query(CustomerProfile).filter(
+            CustomerProfile.user_id == customer.user_id
+        ).first()
+        if existing:
+            raise ValueError(f"用户ID {customer.user_id} 已关联客户档案，不允许重复建档")
     db_customer = CustomerProfile(**customer.model_dump())
     db.add(db_customer)
     db.commit()

@@ -39,11 +39,7 @@ const createForm = reactive({
   balance: 0,
 })
 
-const createRules: FormRules = {
-  user_id: [
-    { required: true, message: '请输入关联的用户ID', trigger: 'blur' },
-  ],
-}
+const createRules: FormRules = {}
 
 // ========== 编辑客户弹窗 ==========
 const editDialogVisible = ref(false)
@@ -144,7 +140,7 @@ const handleCreate = async () => {
   createLoading.value = true
   try {
     await customerApi.create({
-      user_id: createForm.user_id!,
+      user_id: createForm.user_id || undefined,
       real_name: createForm.real_name || undefined,
       phone: createForm.phone || undefined,
       address: createForm.address || undefined,
@@ -356,11 +352,12 @@ const handleDelete = async (customer: CustomerProfile) => {
         label-width="100px"
         label-position="left"
       >
-        <el-form-item label="关联用户ID" prop="user_id">
+        <el-form-item label="关联用户（可选）" prop="user_id">
           <el-select
             v-model="createForm.user_id"
-            placeholder="选择基础用户"
+            placeholder="不选则创建无账户的客户档案"
             filterable
+            clearable
             style="width: 100%"
           >
             <el-option

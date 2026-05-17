@@ -3,7 +3,7 @@ import api from './index'
 
 export interface CustomerProfile {
   id: number
-  user_id: number
+  user_id: number | null
   store_id: number | null
   real_name: string | null
   phone: string | null
@@ -22,9 +22,9 @@ export const customerApi = {
   /** 获取单个客户详情 */
   get: (id: number) => api.get(`/customers/${id}`),
 
-  /** 创建客户档案 */
+  /** 创建客户档案（user_id 可选，未注册顾客可不传） */
   create: (data: {
-    user_id: number
+    user_id?: number
     real_name?: string
     phone?: string
     address?: string

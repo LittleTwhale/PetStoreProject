@@ -9,8 +9,8 @@ class CustomerProfile(Base):
     __table_args__ = {'comment': '客户业务档案表'}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False,
-                     comment="关联基础用户")
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), unique=True, nullable=True,
+                     comment="关联基础用户（可选，未注册顾客可为空）")
 
     real_name = Column(String(50), nullable=True, comment="客户真实姓名")
     phone = Column(String(20), nullable=True, index=True, comment="联系电话")
