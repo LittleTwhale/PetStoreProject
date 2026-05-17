@@ -60,6 +60,13 @@ const filterOwnerId = ref<number | null>(null)
 const searchText = ref('')
 const customerOptions = ref<CustomerProfile[]>([])
 
+// 根据 owner_id 查找主人姓名
+const getOwnerName = (ownerId: number | null) => {
+  if (ownerId == null) return null
+  const c = customerOptions.value.find((c) => c.id === ownerId)
+  return c ? (c.real_name || '未实名') : `ID:${ownerId}`
+}
+
 // ========== 创建宠物弹窗 ==========
 const createDialogVisible = ref(false)
 const createFormRef = ref<FormInstance>()
@@ -153,7 +160,7 @@ watch([filterOwnership, filterOwnerId], () => {
   fetchPets()
 })
 
-// 搜索过滤（前端）
+// 搜索过滤（前端，支持按主人姓名搜索）
 const filteredPets = computed(() => {
   if (!searchText.value) return pets.value
   const kw = searchText.value.toLowerCase()
@@ -162,7 +169,8 @@ const filteredPets = computed(() => {
       (p.name && p.name.toLowerCase().includes(kw)) ||
       p.species.toLowerCase().includes(kw) ||
       (p.breed && p.breed.toLowerCase().includes(kw)) ||
-      String(p.id).includes(kw),
+      String(p.id).includes(kw) ||
+      (p.owner_id != null && getOwnerName(p.owner_id)?.toLowerCase().includes(kw)),
   )
 })
 
@@ -541,9 +549,9 @@ watch(
             <span v-else style="color: #c0c4cc">—</span>
           </template>
         </el-table-column>
-        <el-table-column label="主人ID" width="80">
+        <el-table-column label="主人" min-width="100">
           <template #default="{ row }">
-            <span v-if="row.owner_id" style="font-family: monospace">{{ row.owner_id }}</span>
+            <span v-if="row.owner_id">{{ getOwnerName(row.owner_id) }}</span>
             <span v-else style="color: #c0c4cc">—</span>
           </template>
         </el-table-column>
