@@ -60,4 +60,13 @@ export const productApi = {
   }) => api.put(`/products/${id}`, data),
 
   delete: (id: number) => api.delete(`/products/${id}`),
+
+  /** 上传商品封面图 */
+  uploadCover: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/products/upload-cover', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }

@@ -24,7 +24,6 @@ import {
 } from '@element-plus/icons-vue'
 import { dashboardApi, type DashboardData } from '@/api/dashboard'
 import { useStoreStore } from '@/stores/store'
-import { useUserStore } from '@/stores/user'
 
 use([
   CanvasRenderer,
@@ -38,8 +37,6 @@ use([
 
 const router = useRouter()
 const storeStore = useStoreStore()
-const userStore = useUserStore()
-const isAdmin = computed(() => userStore.user?.role === 'admin')
 
 const data = ref<DashboardData | null>(null)
 const isLoading = ref(false)
@@ -138,7 +135,9 @@ const formatAmount = (v: number) => `¥${v.toFixed(2)}`
     <div class="page-header">
       <div>
         <h2 class="page-title">数据工作台</h2>
-        <p class="page-subtitle">{{ storeStore.currentStoreName || '全部门店' }} · 经营数据概览</p>
+        <p class="page-subtitle">
+          {{ storeStore.currentStore?.name || '全部门店' }} · 经营数据概览
+        </p>
       </div>
       <el-button :icon="RefreshRight" @click="fetchData" :loading="isLoading">刷新数据</el-button>
     </div>

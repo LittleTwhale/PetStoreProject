@@ -24,4 +24,4 @@ class CustomerProfile(Base):
 
     # 关联
     user = relationship("User", backref="customer_profile")
-    pets = relationship("Pet", back_populates="owner", cascade="all, delete-orphan")
+    pets = relationship("Pet", back_populates="owner")

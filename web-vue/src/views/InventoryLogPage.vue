@@ -2,7 +2,7 @@
 // views/InventoryLogPage.vue — 库存流水明细
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Document } from '@element-plus/icons-vue'
+import { Document } from '@element-plus/icons-vue'
 import { inventoryApi, type InventoryLog, type InventoryItem } from '@/api/inventory'
 import { useStoreStore } from '@/stores/store'
 

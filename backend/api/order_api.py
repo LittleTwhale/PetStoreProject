@@ -150,7 +150,10 @@ def update_order_status(
     # 退款操作仅管理员可执行
     if status_data.status == "refunded":
         security.require_admin(current_user)
-    updated = order_crud.update_order_status(db, order_id, status_data)
+    try:
+        updated = order_crud.update_order_status(db, order_id, status_data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not updated:
         raise HTTPException(status_code=404, detail="订单不存在")
     return _build_order_response(updated)

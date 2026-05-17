@@ -1,5 +1,5 @@
 # api/product_api.py — 商品管理接口
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -9,8 +9,22 @@ from crud import product_crud
 from models.product_model import Product
 from models.user_model import User
 from core import security
+from upload_utils import save_upload_image
 
 router = APIRouter(tags=["商品管理"])
+
+
+# ==================== 商品图片上传 ====================
+
+@router.post("/upload-cover")
+def upload_product_cover(
+    file: UploadFile = File(...),
+    current_user: User = Depends(security.get_current_user),
+):
+    """上传商品封面图，返回图片 URL"""
+    security.require_admin_or_staff(current_user)
+    url = save_upload_image(file, "products")
+    return {"url": url}
 
 
 # ==================== 商品 CRUD ====================

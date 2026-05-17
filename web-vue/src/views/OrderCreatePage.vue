@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // views/OrderCreatePage.vue — 创建订单
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus, Delete, Back } from '@element-plus/icons-vue'
@@ -119,7 +119,13 @@ onMounted(async () => {
     ])
     products.value = pRes.data.filter(p => p.is_active)
     services.value = sRes.data.filter(s => s.is_active)
-    customers.value = cRes.data.map((c: any) => ({ id: c.id, name: c.name, phone: c.phone }))
+    customers.value = cRes.data.map(
+      (c: { id: number; real_name: string | null; phone: string | null }) => ({
+        id: c.id,
+        name: c.real_name || '未实名',
+        phone: c.phone,
+      }),
+    )
   } catch {
     ElMessage.error('加载基础数据失败')
   }

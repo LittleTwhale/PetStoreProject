@@ -14,7 +14,10 @@ import {
   Money,
 } from '@element-plus/icons-vue'
 import { customerApi, type CustomerProfile } from '@/api/customer'
+import { adminApi } from '@/api'
 import { useStoreStore } from '@/stores/store'
+
+interface UserOption { id: number; nickname: string; role: string }
 
 const storeStore = useStoreStore()
 
@@ -22,6 +25,7 @@ const storeStore = useStoreStore()
 const customers = ref<CustomerProfile[]>([])
 const isLoading = ref(false)
 const searchText = ref('')
+const userOptions = ref<UserOption[]>([])
 
 // ========== 创建客户弹窗 ==========
 const createDialogVisible = ref(false)
@@ -92,7 +96,22 @@ const fetchCustomers = async () => {
   }
 }
 
-onMounted(fetchCustomers)
+onMounted(() => {
+  fetchCustomers()
+  loadUserOptions()
+})
+
+// 加载用户下拉选项
+const loadUserOptions = async () => {
+  try {
+    const res = await adminApi.listUsers()
+    userOptions.value = res.data.map((u: { id: number; nickname: string; role: string }) => ({
+      id: u.id,
+      nickname: u.nickname,
+      role: u.role,
+    }))
+  } catch { /* ignore */ }
+}
 
 // 搜索过滤
 const filteredCustomers = computed(() => {
@@ -344,12 +363,19 @@ const handleDelete = async (customer: CustomerProfile) => {
         label-position="left"
       >
         <el-form-item label="关联用户ID" prop="user_id">
-          <el-input-number
+          <el-select
             v-model="createForm.user_id"
-            :min="1"
-            placeholder="请输入基础用户ID"
+            placeholder="选择基础用户"
+            filterable
             style="width: 100%"
-          />
+          >
+            <el-option
+              v-for="u in userOptions"
+              :key="u.id"
+              :label="`${u.nickname} (${u.role === 'admin' ? '管理员' : u.role === 'staff' ? '店员' : '顾客'})`"
+              :value="u.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="真实姓名">
           <el-input v-model="createForm.real_name" placeholder="客户真实姓名" maxlength="50" />

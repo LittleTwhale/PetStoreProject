@@ -2,13 +2,9 @@
 // views/OrderPage.vue — 订单管理
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
-import {
-  Plus, Search, EditPen, Delete, Document, Coin, CreditCard, RefreshRight,
-} from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { Plus, Search, EditPen, Document, Coin, CreditCard, RefreshRight } from '@element-plus/icons-vue'
 import { orderApi, type Order, type OrderItem } from '@/api/order'
-import { customerApi } from '@/api/customer'
 import { useUserStore } from '@/stores/user'
 import { useStoreStore } from '@/stores/store'
 
@@ -85,7 +81,7 @@ const openDetailDialog = async (order: Order) => {
 const fetchOrders = async () => {
   isLoading.value = true
   try {
-    const params: Record<string, unknown> = {
+    const params: Record<string, string | number | undefined> = {
       limit: 200,
       store_id: storeStore.currentStoreId ?? undefined,
       order_type: filterType.value ?? undefined,
@@ -96,7 +92,7 @@ const fetchOrders = async () => {
       params.start_date = dateRange.value[0]
       params.end_date = dateRange.value[1]
     }
-    const res = await orderApi.list(params as any)
+    const res = await orderApi.list(params)
     orders.value = res.data
   } catch {
     ElMessage.error('获取订单列表失败')
@@ -111,7 +107,7 @@ const handlePay = async (order: Order) => {
     await orderApi.updateStatus(order.id, {
       status: 'paid',
       remark: '确认收款',
-    } as any)
+    })
     ElMessage.success('已确认收款')
     await fetchOrders()
   } catch { /* ignore */ }

@@ -1,5 +1,5 @@
 # api/pet_api.py
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -8,11 +8,25 @@ from schemas.pet_schema import PetResponse, PetCreate, PetUpdate
 from crud import pet_crud
 from core import security
 from models.user_model import User
+from upload_utils import save_upload_image, remove_upload_image
 
 router = APIRouter(tags=["宠物台账管理 (Admin/Staff)"])
 
 # 合法的归属类型
 VALID_OWNERSHIP_TYPES = {"customer", "for_sale", "store_mascot"}
+
+
+# ==================== 宠物图片上传 ====================
+
+@router.post("/upload-avatar")
+def upload_pet_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(security.get_current_user),
+):
+    """上传宠物照片，返回图片 URL"""
+    security.require_admin_or_staff(current_user)
+    url = save_upload_image(file, "pets")
+    return {"url": url}
 
 
 @router.get("/", response_model=List[PetResponse])
@@ -114,8 +128,15 @@ def delete_pet(
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """删除宠物档案"""
+    """删除宠物档案（同时清理已上传的宠物照片文件）"""
     security.require_admin_or_staff(current_user)
+    # 先获取宠物记录以清理关联图片
+    pet = pet_crud.get_pet_by_id(db, pet_id)
+    if not pet:
+        raise HTTPException(status_code=404, detail="宠物档案不存在")
+    # 清理已上传的宠物照片
+    if pet.avatar:
+        remove_upload_image(pet.avatar)
     success = pet_crud.delete_pet(db, pet_id)
     if not success:
         raise HTTPException(status_code=404, detail="宠物档案不存在")

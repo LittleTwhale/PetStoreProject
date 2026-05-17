@@ -5,11 +5,15 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus, Search, EditPen, Delete, Shop, UserFilled } from '@element-plus/icons-vue'
 import { storeApi, type Store, type StoreUser } from '@/api/store'
+import { adminApi } from '@/api'
+
+interface UserOption { id: number; nickname: string; role: string }
 
 // ========== 数据状态 ==========
 const stores = ref<Store[]>([])
 const isLoading = ref(false)
 const searchText = ref('')
+const userOptions = ref<UserOption[]>([])
 
 // ========== 创建门店弹窗 ==========
 const createDialogVisible = ref(false)
@@ -65,7 +69,22 @@ const fetchStores = async () => {
   }
 }
 
-onMounted(fetchStores)
+onMounted(() => {
+  fetchStores()
+  loadUserOptions()
+})
+
+// 加载用户下拉选项
+const loadUserOptions = async () => {
+  try {
+    const res = await adminApi.listUsers()
+    userOptions.value = res.data.map((u: { id: number; nickname: string; role: string }) => ({
+      id: u.id,
+      nickname: u.nickname,
+      role: u.role,
+    }))
+  } catch { /* ignore */ }
+}
 
 // 搜索过滤
 const filteredStores = computed(() => {
@@ -329,8 +348,15 @@ const handleUnbindUser = async (userId: number) => {
         <el-form-item label="联系电话">
           <el-input v-model="createForm.phone" placeholder="门店座机或手机" maxlength="20" />
         </el-form-item>
-        <el-form-item label="店长ID">
-          <el-input-number v-model="createForm.manager_id" :min="1" placeholder="可选" style="width: 100%" />
+        <el-form-item label="店长">
+          <el-select v-model="createForm.manager_id" placeholder="选择店长（可选）" clearable filterable style="width: 100%">
+            <el-option
+              v-for="u in userOptions"
+              :key="u.id"
+              :label="`${u.nickname} (${u.role === 'admin' ? '管理员' : u.role === 'staff' ? '店员' : '顾客'})`"
+              :value="u.id"
+            />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -362,8 +388,15 @@ const handleUnbindUser = async (userId: number) => {
         <el-form-item label="联系电话">
           <el-input v-model="editForm.phone" placeholder="门店电话" maxlength="20" />
         </el-form-item>
-        <el-form-item label="店长ID">
-          <el-input-number v-model="editForm.manager_id" :min="1" placeholder="可选" style="width: 100%" />
+        <el-form-item label="店长">
+          <el-select v-model="editForm.manager_id" placeholder="选择店长（可选）" clearable filterable style="width: 100%">
+            <el-option
+              v-for="u in userOptions"
+              :key="u.id"
+              :label="`${u.nickname} (${u.role === 'admin' ? '管理员' : u.role === 'staff' ? '店员' : '顾客'})`"
+              :value="u.id"
+            />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -384,12 +417,19 @@ const handleUnbindUser = async (userId: number) => {
     >
       <!-- 绑定新店员 -->
       <div class="bind-row">
-        <el-input-number
+        <el-select
           v-model="bindUserId"
-          :min="1"
-          placeholder="输入用户ID"
-          style="width: 180px"
-        />
+          placeholder="选择用户"
+          filterable
+          style="width: 200px"
+        >
+          <el-option
+            v-for="u in userOptions"
+            :key="u.id"
+            :label="`${u.nickname} (${u.role === 'admin' ? '管理员' : u.role === 'staff' ? '店员' : '顾客'})`"
+            :value="u.id"
+          />
+        </el-select>
         <el-button type="primary" :loading="bindLoading" @click="handleBindUser">
           绑定到本店
         </el-button>

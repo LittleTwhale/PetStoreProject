@@ -32,11 +32,14 @@ const closeMobileMenu = () => {
 }
 
 // 移动端路由切换后自动关闭侧栏
-watch(() => route.path, () => {
-  if (isMobile.value) {
-    mobileMenuOpen.value = false
-  }
-})
+watch(
+  () => route.path,
+  () => {
+    if (isMobile.value) {
+      mobileMenuOpen.value = false
+    }
+  },
+)
 
 const menuItems = computed(() => {
   const items = [
@@ -94,11 +97,7 @@ onMounted(async () => {
   <el-container class="layout-container">
     <!-- 侧边栏 -->
     <!-- 移动端遮罩层 -->
-    <div
-      v-if="isMobile && mobileMenuOpen"
-      class="mobile-overlay"
-      @click="closeMobileMenu"
-    ></div>
+    <div v-if="isMobile && mobileMenuOpen" class="mobile-overlay" @click="closeMobileMenu"></div>
 
     <el-aside
       :width="isCollapse && !isMobile ? '64px' : '220px'"
@@ -126,11 +125,7 @@ onMounted(async () => {
         text-color="rgba(255,255,255,0.7)"
         active-text-color="#fff"
       >
-        <el-menu-item
-          v-for="item in menuItems"
-          :key="item.index"
-          :index="item.index"
-        >
+        <el-menu-item v-for="item in menuItems" :key="item.index" :index="item.index">
           <el-icon :size="18">
             <component :is="item.icon" />
           </el-icon>
@@ -147,12 +142,7 @@ onMounted(async () => {
       <el-header class="top-header">
         <div class="header-left">
           <!-- 移动端汉堡菜单按钮 -->
-          <el-button
-            v-if="isMobile"
-            class="hamburger-btn"
-            text
-            @click="toggleSidebar"
-          >
+          <el-button v-if="isMobile" class="hamburger-btn" text @click="toggleSidebar">
             <el-icon :size="22">
               <component :is="mobileMenuOpen ? 'Close' : 'Menu'" />
             </el-icon>
@@ -185,14 +175,12 @@ onMounted(async () => {
             placeholder="选择门店"
             class="store-switcher"
             size="small"
-            @change="(val: number) => storeStore.switchStore(val)"
+            clearable
+            @change="(val: number | null) => storeStore.switchStore(val)"
           >
-            <el-option
-              v-for="s in storeStore.myStores"
-              :key="s.id"
-              :label="s.name"
-              :value="s.id"
-            >
+            <el-option label="全部门店" :value="null" />
+
+            <el-option v-for="s in storeStore.myStores" :key="s.id" :label="s.name" :value="s.id">
               <span>{{ s.name }}</span>
               <span style="color: #909399; font-size: 12px; margin-left: 6px">{{ s.code }}</span>
             </el-option>
@@ -200,11 +188,7 @@ onMounted(async () => {
           <!-- 用户信息 -->
           <el-dropdown trigger="click" @command="handleCommand">
             <div class="user-area">
-              <el-avatar
-                :size="34"
-                :src="userStore.user?.avatar || undefined"
-                class="user-avatar"
-              >
+              <el-avatar :size="34" :src="userStore.user?.avatar || undefined" class="user-avatar">
                 <el-icon :size="18"><UserFilled /></el-icon>
               </el-avatar>
               <span class="user-name">{{ userStore.user?.nickname || '用户' }}</span>
@@ -477,13 +461,21 @@ onMounted(async () => {
 
 /* ========== 动画 ========== */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 .fade-enter-active,

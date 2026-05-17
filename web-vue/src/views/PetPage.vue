@@ -2,22 +2,29 @@
 // views/PetPage.vue — 宠物台账管理页面
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
-import {
-  Plus,
-  Search,
-  EditPen,
-  Delete,
-  Medal,
-  Money,
-} from '@element-plus/icons-vue'
+import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
+import { Plus, Search, EditPen, Delete, Medal, Money } from '@element-plus/icons-vue'
 import { petApi, type PetInfo } from '@/api/pet'
+import { customerApi, type CustomerProfile } from '@/api/customer'
 import { useStoreStore } from '@/stores/store'
 
 const storeStore = useStoreStore()
 
 // ========== 常量 ==========
-const SPECIES_OPTIONS = ['狗', '猫', '兔', '仓鼠', '龙猫', '豚鼠', '鸟', '鱼', '龟', '蛇', '蜥蜴', '其他']
+const SPECIES_OPTIONS = [
+  '狗',
+  '猫',
+  '兔',
+  '仓鼠',
+  '龙猫',
+  '豚鼠',
+  '鸟',
+  '鱼',
+  '龟',
+  '蛇',
+  '蜥蜴',
+  '其他',
+]
 const GENDER_OPTIONS = ['公', '母', '未知']
 const OWNERSHIP_TYPES = [
   { label: '客宠 (已售出)', value: 'customer' },
@@ -51,6 +58,7 @@ const isLoading = ref(false)
 const filterOwnership = ref<string>('')
 const filterOwnerId = ref<number | null>(null)
 const searchText = ref('')
+const customerOptions = ref<CustomerProfile[]>([])
 
 // ========== 创建宠物弹窗 ==========
 const createDialogVisible = ref(false)
@@ -125,7 +133,20 @@ const fetchPets = async () => {
   }
 }
 
-onMounted(fetchPets)
+onMounted(() => {
+  fetchPets()
+  loadCustomerOptions()
+})
+
+// 加载客户下拉选项
+const loadCustomerOptions = async () => {
+  try {
+    const res = await customerApi.list({ limit: 500 })
+    customerOptions.value = res.data
+  } catch {
+    /* ignore */
+  }
+}
 
 // 监听过滤条件变化自动刷新
 watch([filterOwnership, filterOwnerId], () => {
@@ -206,8 +227,7 @@ const handleCreate = async () => {
     await fetchPets()
   } catch (err: unknown) {
     ElMessage.error(
-      (err as { response?: { data?: { detail?: string } } }).response?.data?.detail ||
-        '录入失败',
+      (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || '录入失败',
     )
   } finally {
     createLoading.value = false
@@ -264,8 +284,7 @@ const handleEdit = async () => {
     await fetchPets()
   } catch (err: unknown) {
     ElMessage.error(
-      (err as { response?: { data?: { detail?: string } } }).response?.data?.detail ||
-        '更新失败',
+      (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || '更新失败',
     )
   } finally {
     editLoading.value = false
@@ -288,17 +307,72 @@ const handleDelete = async (pet: PetInfo) => {
   }
 }
 
+// ========== 照片上传相关 ==========
+const beforeAvatarUpload = (file: File) => {
+  const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)
+  if (!isValidType) {
+    ElMessage.error('仅支持 JPG / PNG / GIF / WebP 格式')
+    return false
+  }
+  if (file.size > 20 * 1024 * 1024) {
+    ElMessage.error('图片大小不能超过 20MB')
+    return false
+  }
+  return true
+}
+
+const handleAvatarUpload = async (options: UploadRequestOptions, formType: 'create' | 'edit') => {
+  try {
+    // 修复了参数个数报错：现在只传 options.file 一个参数，并断言为 File
+    const res = await petApi.uploadAvatar(options.file as File)
+    const imageUrl = res.data.url
+
+    if (formType === 'create') {
+      createForm.avatar = imageUrl
+    } else {
+      editForm.avatar = imageUrl
+    }
+    ElMessage.success('照片上传成功')
+  } catch (err: unknown) {
+    console.error(err)
+    ElMessage.error('照片上传失败')
+  }
+}
+
+// 专门为模板准备的包装函数
+const handleCreateAvatarUpload = (options: UploadRequestOptions) =>
+  handleAvatarUpload(options, 'create')
+const handleEditAvatarUpload = (options: UploadRequestOptions) =>
+  handleAvatarUpload(options, 'edit')
+
+const removeAvatar = (formType: 'create' | 'edit') => {
+  if (formType === 'create') createForm.avatar = ''
+  else editForm.avatar = ''
+}
+
+// 解决图片裂开的核心：格式化图片 URL
+const formatImageUrl = (url: string) => {
+  if (!url) return ''
+  return url
+}
+
 // 监听创建时 ownership_type 变化，自动处理价格和 owner_id
-watch(() => createForm.ownership_type, (newVal) => {
-  if (newVal !== 'for_sale') createForm.price = null
-  if (newVal !== 'customer') createForm.owner_id = null
-})
+watch(
+  () => createForm.ownership_type,
+  (newVal) => {
+    if (newVal !== 'for_sale') createForm.price = null
+    if (newVal !== 'customer') createForm.owner_id = null
+  },
+)
 
 // 监听编辑时 ownership_type 变化
-watch(() => editForm.ownership_type, (newVal) => {
-  if (newVal !== 'for_sale') editForm.price = null
-  if (newVal !== 'customer') editForm.owner_id = null
-})
+watch(
+  () => editForm.ownership_type,
+  (newVal) => {
+    if (newVal !== 'for_sale') editForm.price = null
+    if (newVal !== 'customer') editForm.owner_id = null
+  },
+)
 </script>
 
 <template>
@@ -316,7 +390,11 @@ watch(() => editForm.ownership_type, (newVal) => {
 
     <!-- 统计卡片 -->
     <div class="stats-row">
-      <div class="stat-card" :class="{ active: filterOwnership === '' }" @click="filterOwnership = ''">
+      <div
+        class="stat-card"
+        :class="{ active: filterOwnership === '' }"
+        @click="filterOwnership = ''"
+      >
         <div class="stat-icon" style="background: #ecf5ff; color: #409eff">
           <el-icon :size="22"><Medal /></el-icon>
         </div>
@@ -325,7 +403,11 @@ watch(() => editForm.ownership_type, (newVal) => {
           <span class="stat-label">全部宠物</span>
         </div>
       </div>
-      <div class="stat-card" :class="{ active: filterOwnership === 'customer' }" @click="filterOwnership = 'customer'">
+      <div
+        class="stat-card"
+        :class="{ active: filterOwnership === 'customer' }"
+        @click="filterOwnership = 'customer'"
+      >
         <div class="stat-icon" style="background: #f0f9eb; color: #67c23a">
           <el-icon :size="22"><Medal /></el-icon>
         </div>
@@ -334,7 +416,11 @@ watch(() => editForm.ownership_type, (newVal) => {
           <span class="stat-label">客宠</span>
         </div>
       </div>
-      <div class="stat-card" :class="{ active: filterOwnership === 'for_sale' }" @click="filterOwnership = 'for_sale'">
+      <div
+        class="stat-card"
+        :class="{ active: filterOwnership === 'for_sale' }"
+        @click="filterOwnership = 'for_sale'"
+      >
         <div class="stat-icon" style="background: #fdf6ec; color: #e6a23c">
           <el-icon :size="22"><Money /></el-icon>
         </div>
@@ -343,7 +429,11 @@ watch(() => editForm.ownership_type, (newVal) => {
           <span class="stat-label">待售</span>
         </div>
       </div>
-      <div class="stat-card" :class="{ active: filterOwnership === 'store_mascot' }" @click="filterOwnership = 'store_mascot'">
+      <div
+        class="stat-card"
+        :class="{ active: filterOwnership === 'store_mascot' }"
+        @click="filterOwnership = 'store_mascot'"
+      >
         <div class="stat-icon" style="background: #fef0f0; color: #f56c6c">
           <el-icon :size="22"><Medal /></el-icon>
         </div>
@@ -370,13 +460,20 @@ watch(() => editForm.ownership_type, (newVal) => {
             :value="opt.value"
           />
         </el-select>
-        <el-input-number
+        <el-select
           v-model="filterOwnerId"
-          placeholder="按主人ID过滤"
-          :min="1"
-          controls-position="right"
+          placeholder="按主人过滤"
+          clearable
+          filterable
           class="filter-owner"
-        />
+        >
+          <el-option
+            v-for="c in customerOptions"
+            :key="c.id"
+            :label="`${c.real_name || '未实名'} (ID:${c.id})`"
+            :value="c.id"
+          />
+        </el-select>
       </div>
       <el-input
         v-model="searchText"
@@ -403,7 +500,7 @@ watch(() => editForm.ownership_type, (newVal) => {
             <div class="pet-cell">
               <el-avatar
                 :size="36"
-                :src="row.avatar || undefined"
+                :src="row.avatar ? formatImageUrl(row.avatar) : undefined"
                 shape="square"
               >
                 <el-icon :size="18"><Medal /></el-icon>
@@ -435,7 +532,10 @@ watch(() => editForm.ownership_type, (newVal) => {
         </el-table-column>
         <el-table-column label="售价" width="100" sortable prop="price">
           <template #default="{ row }">
-            <span v-if="row.ownership_type === 'for_sale' && row.price" style="font-weight: 600; color: #e6a23c">
+            <span
+              v-if="row.ownership_type === 'for_sale' && row.price"
+              style="font-weight: 600; color: #e6a23c"
+            >
               ¥{{ row.price?.toFixed(2) }}
             </span>
             <span v-else style="color: #c0c4cc">—</span>
@@ -451,7 +551,13 @@ watch(() => editForm.ownership_type, (newVal) => {
           <template #default="{ row }">
             <el-tag
               v-if="row.vaccine_status"
-              :type="row.vaccine_status === '已完成' ? 'success' : row.vaccine_status === '未接种' ? 'danger' : 'warning'"
+              :type="
+                row.vaccine_status === '已完成'
+                  ? 'success'
+                  : row.vaccine_status === '未接种'
+                    ? 'danger'
+                    : 'warning'
+              "
               size="small"
               round
             >
@@ -504,12 +610,7 @@ watch(() => editForm.ownership_type, (newVal) => {
           <el-col :span="12">
             <el-form-item label="物种" prop="species">
               <el-select v-model="createForm.species" placeholder="必选" style="width: 100%">
-                <el-option
-                  v-for="s in SPECIES_OPTIONS"
-                  :key="s"
-                  :label="s"
-                  :value="s"
-                />
+                <el-option v-for="s in SPECIES_OPTIONS" :key="s" :label="s" :value="s" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -523,13 +624,13 @@ watch(() => editForm.ownership_type, (newVal) => {
           </el-col>
           <el-col :span="12">
             <el-form-item label="性别">
-              <el-select v-model="createForm.gender" placeholder="选填" style="width: 100%" clearable>
-                <el-option
-                  v-for="g in GENDER_OPTIONS"
-                  :key="g"
-                  :label="g"
-                  :value="g"
-                />
+              <el-select
+                v-model="createForm.gender"
+                placeholder="选填"
+                style="width: 100%"
+                clearable
+              >
+                <el-option v-for="g in GENDER_OPTIONS" :key="g" :label="g" :value="g" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -564,13 +665,13 @@ watch(() => editForm.ownership_type, (newVal) => {
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="疫苗状态">
-              <el-select v-model="createForm.vaccine_status" placeholder="选填" style="width: 100%" clearable>
-                <el-option
-                  v-for="v in VACCINE_OPTIONS"
-                  :key="v"
-                  :label="v"
-                  :value="v"
-                />
+              <el-select
+                v-model="createForm.vaccine_status"
+                placeholder="选填"
+                style="width: 100%"
+                clearable
+              >
+                <el-option v-for="v in VACCINE_OPTIONS" :key="v" :label="v" :value="v" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -588,11 +689,7 @@ watch(() => editForm.ownership_type, (newVal) => {
 
         <el-form-item label="归属类型">
           <el-radio-group v-model="createForm.ownership_type">
-            <el-radio-button
-              v-for="opt in OWNERSHIP_TYPES"
-              :key="opt.value"
-              :value="opt.value"
-            >
+            <el-radio-button v-for="opt in OWNERSHIP_TYPES" :key="opt.value" :value="opt.value">
               {{ opt.label }}
             </el-radio-button>
           </el-radio-group>
@@ -609,22 +706,55 @@ watch(() => editForm.ownership_type, (newVal) => {
           />
         </el-form-item>
 
-        <!-- 客宠时显示主人ID -->
+        <!-- 客宠时显示主人选择 -->
         <el-form-item
           v-if="createForm.ownership_type === 'customer'"
-          label="主人ID"
+          label="主人"
           :required="createOwnerIdRequired"
         >
-          <el-input-number
+          <el-select
             v-model="createForm.owner_id"
-            :min="1"
+            placeholder="选择客户"
+            filterable
             style="width: 220px"
-            placeholder="客户档案ID"
-          />
+          >
+            <el-option
+              v-for="c in customerOptions"
+              :key="c.id"
+              :label="`${c.real_name || '未实名'} (ID:${c.id})`"
+              :value="c.id"
+            />
+          </el-select>
         </el-form-item>
 
-        <el-form-item label="照片URL">
-          <el-input v-model="createForm.avatar" placeholder="宠物照片链接（选填）" maxlength="255" />
+        <el-form-item label="宠物照片">
+          <div class="custom-avatar-uploader">
+            <el-upload
+              action="#"
+              :show-file-list="false"
+              :before-upload="beforeAvatarUpload"
+              :http-request="handleCreateAvatarUpload"
+            >
+              <img
+                v-if="createForm.avatar"
+                :src="formatImageUrl(createForm.avatar)"
+                class="avatar-preview"
+                alt="宠物照片"/>
+              <div v-else class="avatar-placeholder">
+                <el-icon class="avatar-icon"><Plus /></el-icon>
+                <span style="font-size: 12px">上传照片</span>
+              </div>
+            </el-upload>
+            <el-button
+              v-if="createForm.avatar"
+              type="danger"
+              circle
+              :icon="Delete"
+              size="small"
+              class="avatar-delete-btn"
+              @click.stop="removeAvatar('create')"
+            />
+          </div>
         </el-form-item>
 
         <el-form-item label="特殊备注">
@@ -654,12 +784,7 @@ watch(() => editForm.ownership_type, (newVal) => {
       :close-on-click-modal="false"
       destroy-on-close
     >
-      <el-form
-        ref="editFormRef"
-        :model="editForm"
-        label-width="90px"
-        label-position="left"
-      >
+      <el-form ref="editFormRef" :model="editForm" label-width="90px" label-position="left">
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="宠物昵称">
@@ -669,12 +794,7 @@ watch(() => editForm.ownership_type, (newVal) => {
           <el-col :span="12">
             <el-form-item label="物种">
               <el-select v-model="editForm.species" placeholder="物种" style="width: 100%">
-                <el-option
-                  v-for="s in SPECIES_OPTIONS"
-                  :key="s"
-                  :label="s"
-                  :value="s"
-                />
+                <el-option v-for="s in SPECIES_OPTIONS" :key="s" :label="s" :value="s" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -689,12 +809,7 @@ watch(() => editForm.ownership_type, (newVal) => {
           <el-col :span="12">
             <el-form-item label="性别">
               <el-select v-model="editForm.gender" placeholder="选填" style="width: 100%" clearable>
-                <el-option
-                  v-for="g in GENDER_OPTIONS"
-                  :key="g"
-                  :label="g"
-                  :value="g"
-                />
+                <el-option v-for="g in GENDER_OPTIONS" :key="g" :label="g" :value="g" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -728,13 +843,13 @@ watch(() => editForm.ownership_type, (newVal) => {
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="疫苗状态">
-              <el-select v-model="editForm.vaccine_status" placeholder="选填" style="width: 100%" clearable>
-                <el-option
-                  v-for="v in VACCINE_OPTIONS"
-                  :key="v"
-                  :label="v"
-                  :value="v"
-                />
+              <el-select
+                v-model="editForm.vaccine_status"
+                placeholder="选填"
+                style="width: 100%"
+                clearable
+              >
+                <el-option v-for="v in VACCINE_OPTIONS" :key="v" :label="v" :value="v" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -752,11 +867,7 @@ watch(() => editForm.ownership_type, (newVal) => {
 
         <el-form-item label="归属类型">
           <el-radio-group v-model="editForm.ownership_type">
-            <el-radio-button
-              v-for="opt in OWNERSHIP_TYPES"
-              :key="opt.value"
-              :value="opt.value"
-            >
+            <el-radio-button v-for="opt in OWNERSHIP_TYPES" :key="opt.value" :value="opt.value">
               {{ opt.label }}
             </el-radio-button>
           </el-radio-group>
@@ -773,22 +884,55 @@ watch(() => editForm.ownership_type, (newVal) => {
           />
         </el-form-item>
 
-        <!-- 客宠时显示主人ID -->
+        <!-- 客宠时显示主人选择 -->
         <el-form-item
           v-if="editForm.ownership_type === 'customer'"
-          label="主人ID"
+          label="主人"
           :required="editOwnerIdRequired"
         >
-          <el-input-number
+          <el-select
             v-model="editForm.owner_id"
-            :min="1"
+            placeholder="选择客户"
+            filterable
             style="width: 220px"
-            placeholder="客户档案ID"
-          />
+          >
+            <el-option
+              v-for="c in customerOptions"
+              :key="c.id"
+              :label="`${c.real_name || '未实名'} (ID:${c.id})`"
+              :value="c.id"
+            />
+          </el-select>
         </el-form-item>
 
-        <el-form-item label="照片URL">
-          <el-input v-model="editForm.avatar" placeholder="宠物照片链接" maxlength="255" />
+        <el-form-item label="宠物照片">
+          <div class="custom-avatar-uploader">
+            <el-upload
+              action="#"
+              :show-file-list="false"
+              :before-upload="beforeAvatarUpload"
+              :http-request="handleEditAvatarUpload"
+            >
+              <img
+                v-if="editForm.avatar"
+                :src="formatImageUrl(editForm.avatar)"
+                class="avatar-preview"
+                alt="宠物照片"/>
+              <div v-else class="avatar-placeholder">
+                <el-icon class="avatar-icon"><Plus /></el-icon>
+                <span style="font-size: 12px">上传照片</span>
+              </div>
+            </el-upload>
+            <el-button
+              v-if="editForm.avatar"
+              type="danger"
+              circle
+              :icon="Delete"
+              size="small"
+              class="avatar-delete-btn"
+              @click.stop="removeAvatar('edit')"
+            />
+          </div>
         </el-form-item>
 
         <el-form-item label="特殊备注">
@@ -804,9 +948,7 @@ watch(() => editForm.ownership_type, (newVal) => {
       </el-form>
       <template #footer>
         <el-button @click="editDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="editLoading" @click="handleEdit">
-          保存修改
-        </el-button>
+        <el-button type="primary" :loading="editLoading" @click="handleEdit"> 保存修改 </el-button>
       </template>
     </el-dialog>
   </div>
@@ -1067,5 +1209,59 @@ watch(() => editForm.ownership_type, (newVal) => {
   .stat-card {
     padding: 10px 12px;
   }
+}
+/* ========== 宠物照片上传样式 ========== */
+.custom-avatar-uploader {
+  position: relative;
+  width: 130px;
+  height: 130px;
+}
+
+.custom-avatar-uploader :deep(.el-upload) {
+  border: 1px dashed #d9d9d9;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  width: 130px;
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fafafa;
+  transition: border-color 0.3s;
+}
+
+.custom-avatar-uploader :deep(.el-upload:hover) {
+  border-color: #409eff;
+}
+
+.avatar-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #8c939d;
+  line-height: 1.5;
+}
+
+.avatar-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.avatar-delete-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 </style>

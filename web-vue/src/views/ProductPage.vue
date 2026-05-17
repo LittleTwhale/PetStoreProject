@@ -2,13 +2,13 @@
 // views/ProductPage.vue — 商品管理
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
-import { Plus, Search, EditPen, Delete, Goods, Coin, Present } from '@element-plus/icons-vue'
+import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
+import { Plus, Search, EditPen, Delete, Goods, Present } from '@element-plus/icons-vue'
 import { productApi, type Product } from '@/api/product'
-import { useUserStore } from '@/stores/user'
+import { petApi, type PetInfo } from '@/api/pet'
+import { inventoryApi, type InventoryItem } from '@/api/inventory'
 import { useStoreStore } from '@/stores/store'
 
-const userStore = useUserStore()
 const storeStore = useStoreStore()
 
 // ========== 数据 ==========
@@ -16,9 +16,10 @@ const products = ref<Product[]>([])
 const isLoading = ref(false)
 const searchText = ref('')
 const filterType = ref<string | null>(null)
+const petOptions = ref<PetInfo[]>([])
+const inventoryOptions = ref<InventoryItem[]>([])
 
 const totalCount = computed(() => products.value.length)
-const activeCount = computed(() => products.value.filter((p) => p.is_active).length)
 const goodsCount = computed(() => products.value.filter((p) => p.product_type === 'goods').length)
 const petCount = computed(() => products.value.filter((p) => p.product_type === 'pet').length)
 
@@ -80,7 +81,22 @@ const fetchProducts = async () => {
 
 onMounted(() => {
   fetchProducts()
+  loadDropdownData()
 })
+
+// 加载下拉选项数据
+const loadDropdownData = async () => {
+  try {
+    const [petRes, invRes] = await Promise.all([
+      petApi.list({ limit: 500, store_id: storeStore.currentStoreId ?? undefined }),
+      inventoryApi.listItems({ limit: 500, store_id: storeStore.currentStoreId ?? undefined }),
+    ])
+    petOptions.value = petRes.data
+    inventoryOptions.value = invRes.data
+  } catch {
+    // 下拉数据加载失败不影响主流程
+  }
+}
 
 // ========== 创建 ==========
 const resetCreateForm = () => {
@@ -186,6 +202,51 @@ const handleDelete = async (item: Product) => {
   } catch {
     /* 取消 */
   }
+}
+
+// ========== 封面图上传相关 ==========
+const beforeCoverUpload = (file: File) => {
+  const isValidType = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)
+  if (!isValidType) {
+    ElMessage.error('仅支持 JPG / PNG / GIF / WebP 格式')
+    return false
+  }
+  if (file.size > 20 * 1024 * 1024) {
+    ElMessage.error('图片大小不能超过 20MB')
+    return false
+  }
+  return true
+}
+
+const handleCoverUpload = async (options: UploadRequestOptions, formType: 'create' | 'edit') => {
+  try {
+    const res = await productApi.uploadCover(options.file as File)
+    const imageUrl = res.data.url
+
+    if (formType === 'create') {
+      createForm.cover_image = imageUrl
+    } else {
+      editForm.cover_image = imageUrl
+    }
+    ElMessage.success('封面图上传成功')
+  } catch (err: unknown) {
+    console.error(err)
+    ElMessage.error('封面图上传失败')
+  }
+}
+
+const handleCreateCoverUpload = (options: UploadRequestOptions) =>
+  handleCoverUpload(options, 'create')
+const handleEditCoverUpload = (options: UploadRequestOptions) => handleCoverUpload(options, 'edit')
+
+const removeCover = (formType: 'create' | 'edit') => {
+  if (formType === 'create') createForm.cover_image = ''
+  else editForm.cover_image = ''
+}
+
+const formatImageUrl = (url: string) => {
+  if (!url) return ''
+  return url
 }
 
 // 类型标签
@@ -381,16 +442,66 @@ const typeLabel = (type: string) => (type === 'goods' ? '用品' : '活体宠物
           </el-col>
         </el-row>
         <el-form-item label="关联库存">
-          <el-input
+          <el-select
             v-model="createForm.inventory_item_id"
-            placeholder="库存物品ID（可选，用品类可关联）"
-          />
+            placeholder="选择库存物品（可选）"
+            clearable
+            filterable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="item in inventoryOptions"
+              :key="item.id"
+              :label="`${item.name} (${item.sku})`"
+              :value="item.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="关联宠物">
-          <el-input v-model="createForm.pet_id" placeholder="宠物ID（可选，活体类可关联）" />
+          <el-select
+            v-model="createForm.pet_id"
+            placeholder="选择宠物（可选）"
+            clearable
+            filterable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="p in petOptions"
+              :key="p.id"
+              :label="`${p.name || '未命名'} (${p.species}${p.breed ? '·' + p.breed : ''})`"
+              :value="p.id"
+            />
+          </el-select>
         </el-form-item>
-        <el-form-item label="封面图URL">
-          <el-input v-model="createForm.cover_image" placeholder="图片链接（可选）" />
+        <el-form-item label="封面图">
+          <div class="custom-avatar-uploader">
+            <el-upload
+              action="#"
+              :show-file-list="false"
+              :before-upload="beforeCoverUpload"
+              :http-request="handleCreateCoverUpload"
+            >
+              <img
+                v-if="createForm.cover_image"
+                :src="formatImageUrl(createForm.cover_image)"
+                class="avatar-preview"
+                alt="商品封面图"
+              />
+              <div v-else class="avatar-placeholder">
+                <el-icon class="avatar-icon"><Plus /></el-icon>
+                <span style="font-size: 12px">上传封面</span>
+              </div>
+            </el-upload>
+            <el-button
+              v-if="createForm.cover_image"
+              type="danger"
+              circle
+              :icon="Delete"
+              size="small"
+              class="avatar-delete-btn"
+              @click.stop="removeCover('create')"
+            />
+          </div>
         </el-form-item>
         <el-form-item label="商品描述">
           <el-input
@@ -470,13 +581,66 @@ const typeLabel = (type: string) => (type === 'goods' ? '用品' : '活体宠物
           </el-col>
         </el-row>
         <el-form-item label="关联库存">
-          <el-input v-model="editForm.inventory_item_id" placeholder="库存物品ID（可选）" />
+          <el-select
+            v-model="editForm.inventory_item_id"
+            placeholder="选择库存物品（可选）"
+            clearable
+            filterable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="item in inventoryOptions"
+              :key="item.id"
+              :label="`${item.name} (${item.sku})`"
+              :value="item.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="关联宠物">
-          <el-input v-model="editForm.pet_id" placeholder="宠物ID（可选）" />
+          <el-select
+            v-model="editForm.pet_id"
+            placeholder="选择宠物（可选）"
+            clearable
+            filterable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="p in petOptions"
+              :key="p.id"
+              :label="`${p.name || '未命名'} (${p.species}${p.breed ? '·' + p.breed : ''})`"
+              :value="p.id"
+            />
+          </el-select>
         </el-form-item>
-        <el-form-item label="封面图URL">
-          <el-input v-model="editForm.cover_image" placeholder="图片链接（可选）" />
+        <el-form-item label="封面图">
+          <div class="custom-avatar-uploader">
+            <el-upload
+              action="#"
+              :show-file-list="false"
+              :before-upload="beforeCoverUpload"
+              :http-request="handleEditCoverUpload"
+            >
+              <img
+                v-if="editForm.cover_image"
+                :src="formatImageUrl(editForm.cover_image)"
+                class="avatar-preview"
+                alt="商品封面图"
+              />
+              <div v-else class="avatar-placeholder">
+                <el-icon class="avatar-icon"><Plus /></el-icon>
+                <span style="font-size: 12px">上传封面</span>
+              </div>
+            </el-upload>
+            <el-button
+              v-if="editForm.cover_image"
+              type="danger"
+              circle
+              :icon="Delete"
+              size="small"
+              class="avatar-delete-btn"
+              @click.stop="removeCover('edit')"
+            />
+          </div>
         </el-form-item>
         <el-form-item label="商品描述">
           <el-input
@@ -646,6 +810,60 @@ const typeLabel = (type: string) => (type === 'goods' ? '用品' : '活体宠物
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+}
+/* ========== 图片上传样式 ========== */
+.custom-avatar-uploader {
+  position: relative;
+  width: 130px;
+  height: 130px;
+}
+
+.custom-avatar-uploader :deep(.el-upload) {
+  border: 1px dashed #d9d9d9;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  width: 130px;
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fafafa;
+  transition: border-color 0.3s;
+}
+
+.custom-avatar-uploader :deep(.el-upload:hover) {
+  border-color: #409eff;
+}
+
+.avatar-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #8c939d;
+  line-height: 1.5;
+}
+
+.avatar-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.avatar-delete-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 @media (max-width: 480px) {

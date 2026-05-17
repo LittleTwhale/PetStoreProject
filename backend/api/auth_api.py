@@ -18,9 +18,13 @@ from models.user_model import User
 
 router = APIRouter(tags=["认证"])
 
-# 头像存储目录
-AVATAR_DIR = os.path.join(os.path.dirname(__file__), "..", "static", "avatars")
+# 头像存储目录（优先使用项目根 uploads 目录）
+from upload_utils import UPLOADS_DIR, save_upload_image, remove_upload_image
+AVATAR_DIR = os.path.join(UPLOADS_DIR, "avatars")
 os.makedirs(AVATAR_DIR, exist_ok=True)
+# 兼容旧路径
+LEGACY_AVATAR_DIR = os.path.join(os.path.dirname(__file__), "..", "static", "avatars")
+os.makedirs(LEGACY_AVATAR_DIR, exist_ok=True)
 
 ALLOWED_AVATAR_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5MB
@@ -138,24 +142,21 @@ def upload_avatar(
             detail="头像文件大小不能超过 5MB",
         )
 
-    # 清理旧头像文件
-    if current_user.avatar and current_user.avatar.startswith("/static/avatars/"):
-        old_filename = current_user.avatar.rsplit("/", 1)[-1]
-        old_filepath = os.path.join(AVATAR_DIR, old_filename)
-        if os.path.isfile(old_filepath):
-            os.remove(old_filepath)
+    # 清理旧头像文件（新路径和旧路径都检查）
+    if current_user.avatar:
+        # 新路径 /uploads/avatars/
+        remove_upload_image(current_user.avatar)
+        # 旧路径 /static/avatars/
+        if current_user.avatar.startswith("/static/avatars/"):
+            old_filename = current_user.avatar.rsplit("/", 1)[-1]
+            old_filepath = os.path.join(LEGACY_AVATAR_DIR, old_filename)
+            if os.path.isfile(old_filepath):
+                os.remove(old_filepath)
 
-    # 生成唯一文件名
-    ext = file.filename.rsplit(".", 1)[-1] if "." in (file.filename or "") else "png"
-    filename = f"{uuid.uuid4().hex}.{ext}"
-    filepath = os.path.join(AVATAR_DIR, filename)
-
-    # 写入文件
-    with open(filepath, "wb") as f:
-        f.write(contents)
+    # 通过 main.py 的通用函数保存
+    avatar_url = save_upload_image(file, "avatars")
 
     # 更新用户头像 URL
-    avatar_url = f"/static/avatars/{filename}"
     auth_crud.update_user(db, user_id=current_user.id, avatar=avatar_url)
 
     return {"avatar_url": avatar_url}
@@ -308,11 +309,13 @@ def admin_delete_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="用户不存在",
         )
-    if target_user.avatar and target_user.avatar.startswith("/static/avatars/"):
-        old_filename = target_user.avatar.rsplit("/", 1)[-1]
-        old_filepath = os.path.join(AVATAR_DIR, old_filename)
-        if os.path.isfile(old_filepath):
-            os.remove(old_filepath)
+    if target_user.avatar:
+        remove_upload_image(target_user.avatar)
+        if target_user.avatar.startswith("/static/avatars/"):
+            old_filename = target_user.avatar.rsplit("/", 1)[-1]
+            old_filepath = os.path.join(LEGACY_AVATAR_DIR, old_filename)
+            if os.path.isfile(old_filepath):
+                os.remove(old_filepath)
 
     auth_crud.delete_user(db, user_id)
     return {"detail": "用户已删除"}

@@ -73,4 +73,13 @@ export const petApi = {
 
   /** 删除宠物档案 */
   delete: (id: number) => api.delete(`/pets/${id}`),
+
+  /** 上传宠物照片 */
+  uploadAvatar: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/pets/upload-avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }

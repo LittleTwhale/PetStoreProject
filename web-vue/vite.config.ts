@@ -23,6 +23,11 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      // 将图片请求也代理到后端
+      '/uploads': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      }
     },
   },
 })

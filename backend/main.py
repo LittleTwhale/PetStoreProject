@@ -14,6 +14,7 @@ from api.product_api import router as product_router
 from api.service_api import router as service_router
 from api.order_api import router as order_router
 from api.dashboard_api import router as dashboard_router
+from upload_utils import UPLOADS_DIR
 
 app = FastAPI(title="PetStore API", version="1.0.0")
 
@@ -26,10 +27,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 静态文件服务（头像等）
+# 静态文件服务（兼容旧 avatar 路径 /static/avatars/）
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# 上传文件静态服务
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+
 
 # 创建一个总的 API 路由组
 api_router = APIRouter(prefix="/api")

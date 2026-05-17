@@ -117,15 +117,35 @@ def update_order(db: Session, order_id: int, order_data: OrderUpdate):
     return db_order
 
 
+# 订单状态流转规则
+ORDER_STATUS_TRANSITIONS: dict[str, set[str]] = {
+    "pending":   {"paid", "cancelled"},
+    "paid":      {"completed", "cancelled", "refunded"},
+    "completed": set(),   # 终态，不可再变更
+    "cancelled": set(),   # 终态
+    "refunded":  set(),   # 终态
+}
+
+
 def update_order_status(db: Session, order_id: int, status_data: OrderStatusUpdate):
-    """更新订单状态"""
+    """更新订单状态（含状态机校验）"""
     db_order = db.query(Order).filter(Order.id == order_id).first()
     if not db_order:
         return None
 
-    db_order.status = status_data.status
+    current_status = db_order.status
+    target_status = status_data.status
+
+    # 状态机校验：检查当前状态是否允许跳转到目标状态
+    allowed = ORDER_STATUS_TRANSITIONS.get(current_status, set())
+    if target_status not in allowed:
+        raise ValueError(
+            f"不允许从「{current_status}」直接变更为「{target_status}」",
+        )
+
+    db_order.status = target_status
     if status_data.remark:
-        db_order.remark = (db_order.remark or '') + f" [{status_data.status}] {status_data.remark}"
+        db_order.remark = (db_order.remark or '') + f" [{target_status}] {status_data.remark}"
 
     db.commit()
     db.refresh(db_order)

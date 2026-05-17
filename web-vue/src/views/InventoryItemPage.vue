@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // views/InventoryItemPage.vue — 库存物品管理
 import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import {
   Plus, Search, EditPen, Delete, Goods, WarningFilled, Coin,
@@ -168,17 +168,6 @@ const handleEdit = async () => {
       (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || '更新失败',
     )
   } finally { editLoading.value = false }
-}
-
-// ========== 删除 ==========
-const handleDelete = async (item: InventoryItem) => {
-  try {
-    await ElMessageBox.confirm(`确定要停用物品「${item.name}」吗？`, '停用物品',
-      { type: 'warning', confirmButtonText: '确认停用' })
-    await inventoryApi.deleteItem(item.id)
-    ElMessage.success('物品已停用')
-    await fetchItems()
-  } catch { /* 取消 */ }
 }
 
 // ========== 入库 ==========
@@ -348,13 +337,13 @@ const handleStockOut = async () => {
           </el-col>
         </el-row>
         <el-row :gutter="16">
-          <el-col :span="8">
+          <el-col :span="12">
             <el-form-item label="安全库存"><el-input-number v-model="createForm.safety_stock" :min="0" style="width:100%" /></el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="12">
             <el-form-item label="进货价"><el-input-number v-model="createForm.unit_price" :min="0" :precision="2" style="width:100%" /></el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="12">
             <el-form-item label="售价"><el-input-number v-model="createForm.selling_price" :min="0" :precision="2" style="width:100%" /></el-form-item>
           </el-col>
         </el-row>

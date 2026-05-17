@@ -78,7 +78,14 @@ def delete_customer(
 ):
     """删除客户档案（关联宠物不会删除，owner_id 将被置空）"""
     security.require_admin_or_staff(current_user)
+    # 先获取客户信息，统计名下宠物数量
+    customer = customer_crud.get_customer_by_id(db, customer_id)
+    if not customer:
+        raise HTTPException(status_code=404, detail="客户档案不存在")
+    pet_count = len(customer.pets) if customer.pets else 0
     success = customer_crud.delete_customer(db, customer_id)
     if not success:
         raise HTTPException(status_code=404, detail="客户档案不存在")
-    return {"detail": "客户档案已删除，名下宠物已解除归属"}
+    if pet_count > 0:
+        return {"detail": f"客户档案已删除，{pet_count} 只宠物已解除归属（owner_id 置空）"}
+    return {"detail": "客户档案已删除"}
