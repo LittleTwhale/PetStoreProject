@@ -31,9 +31,12 @@ export interface StoreUser {
 }
 
 export const storeApi = {
-  /** 获取门店列表 */
+  /** 获取门店列表（admin看全部） */
   list: (params?: { search?: string; skip?: number; limit?: number }) =>
     api.get('/stores/', { params }),
+
+  /** 获取当前用户绑定的门店（staff返回自己的，admin返回全部） */
+  my: () => api.get('/stores/my'),
 
   /** 获取门店详情 */
   get: (id: number) => api.get(`/stores/${id}`),

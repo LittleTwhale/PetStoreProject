@@ -33,15 +33,16 @@ def upload_pet_avatar(
 def read_pets(
     ownership_type: Optional[str] = Query(None, description="过滤归属类型: customer / for_sale / store_mascot"),
     owner_id: Optional[int] = Query(None, description="按主人ID过滤（查看某客户名下全部宠物）"),
-    store_id: Optional[int] = Query(None, description="按门店ID过滤"),
+    store_id: Optional[int] = Query(None, description="按门店ID过滤（staff忽略此参数，自动使用绑定门店）"),
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """获取宠物列表，支持按归属类型、主人ID和门店过滤"""
+    """获取宠物列表。admin可查看全部或指定门店，staff仅能查看绑定门店的宠物"""
     security.require_admin_or_staff(current_user)
-    pets = pet_crud.get_pets(db, ownership_type=ownership_type, owner_id=owner_id, store_id=store_id, skip=skip, limit=limit)
+    effective_store_id = security.get_effective_store_id(current_user, store_id, db)
+    pets = pet_crud.get_pets(db, ownership_type=ownership_type, owner_id=owner_id, store_id=effective_store_id, skip=skip, limit=limit)
     return pets
 
 
@@ -66,7 +67,7 @@ def create_new_pet(
     current_user: User = Depends(security.get_current_user),
 ):
     """
-    录入新宠物档案。
+    录入新宠物档案。staff自动绑定到所属门店，admin可指定门店。
     - 客宠：传 owner_id，ownership_type 为 "customer"
     - 待售：不传 owner_id，ownership_type 为 "for_sale"，可选填 price
     - 店宠：不传 owner_id，ownership_type 为 "store_mascot"
@@ -84,6 +85,9 @@ def create_new_pet(
     if pet.ownership_type == "customer" and pet.owner_id is None:
         raise HTTPException(status_code=400, detail="客宠必须指定 owner_id")
 
+    # staff自动绑定到所属门店
+    pet.store_id = security.get_effective_store_id(current_user, pet.store_id, db)
+
     return pet_crud.create_pet(db, pet)
 
 
@@ -95,7 +99,7 @@ def update_existing_pet(
     current_user: User = Depends(security.get_current_user),
 ):
     """
-    修改宠物信息 / 宠物售出操作。
+    修改宠物信息 / 宠物售出操作。staff只能修改绑定门店的宠物。
     售出场景：将 ownership_type 改为 "customer"，并绑定新的 owner_id。
     """
     security.require_admin_or_staff(current_user)
@@ -113,10 +117,19 @@ def update_existing_pet(
     if current_pet is None:
         raise HTTPException(status_code=404, detail="宠物档案不存在")
 
+    # staff 只能修改绑定门店的宠物
+    if current_user.role == "staff" and current_pet.store_id is not None:
+        security.require_store_access(current_user, current_pet.store_id, db)
+
     new_ownership = update_data.get("ownership_type", current_pet.ownership_type)
     new_owner_id = update_data.get("owner_id", current_pet.owner_id)
     if new_ownership == "customer" and new_owner_id is None:
         raise HTTPException(status_code=400, detail="客宠必须指定 owner_id")
+
+    # staff修改时不允许更改门店归属
+    if current_user.role == "staff":
+        if "store_id" in update_data:
+            del update_data["store_id"]
 
     updated_pet = pet_crud.update_pet(db, pet_id, pet)
     return updated_pet
@@ -128,12 +141,15 @@ def delete_pet(
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """删除宠物档案（同时清理已上传的宠物照片文件）"""
+    """删除宠物档案（同时清理已上传的宠物照片文件）。staff只能删除绑定门店的宠物"""
     security.require_admin_or_staff(current_user)
     # 先获取宠物记录以清理关联图片
     pet = pet_crud.get_pet_by_id(db, pet_id)
     if not pet:
         raise HTTPException(status_code=404, detail="宠物档案不存在")
+    # staff 只能删除绑定门店的宠物
+    if current_user.role == "staff" and pet.store_id is not None:
+        security.require_store_access(current_user, pet.store_id, db)
     # 清理已上传的宠物照片
     if pet.avatar:
         remove_upload_image(pet.avatar)

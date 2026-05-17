@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { UserFilled, Camera, InfoFilled, Edit, Lock } from '@element-plus/icons-vue'
+import { UserFilled, Camera, InfoFilled, Edit, Lock, Shop, StarFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { authApi } from '@/api'
 import Cropper from 'cropperjs'
@@ -280,17 +280,20 @@ const roleColor = (role: string) => {
           <div class="hero-info">
             <h2 class="hero-name">{{ userStore.user?.nickname }}</h2>
             <div class="hero-meta">
-              <el-tag
-                :color="roleColor(userStore.user?.role || '')"
-                effect="dark"
-                size="small"
-                round
-                class="role-tag"
-              >
-                {{ roleLabel(userStore.user?.role || '') }}
-              </el-tag>
+              <div class="role-badge" :style="{ background: roleColor(userStore.user?.role || '') }">
+                <el-icon :size="14"><StarFilled /></el-icon>
+                <span>{{ roleLabel(userStore.user?.role || '') }}</span>
+              </div>
               <span class="meta-desc">
                 {{ userStore.user?.position_desc || '暂无职位描述' }}
+              </span>
+              <!-- 店员/管理员显示所属门店 -->
+              <span
+                v-if="(userStore.user?.role === 'staff' || userStore.user?.role === 'admin') && userStore.user?.bound_store_name"
+                class="meta-store"
+              >
+                <el-icon :size="14"><Shop /></el-icon>
+                {{ userStore.user.bound_store_name }}
               </span>
             </div>
           </div>
@@ -381,14 +384,21 @@ const roleColor = (role: string) => {
 
           <!-- 角色 -->
           <el-form-item label="系统角色">
-            <el-tag
-              :color="roleColor(userStore.user?.role || '')"
-              effect="light"
-              size="small"
-              round
-            >
-              {{ roleLabel(userStore.user?.role || '') }}
-            </el-tag>
+            <div class="role-badge-inline" :style="{ background: roleColor(userStore.user?.role || '') }">
+              <el-icon :size="14"><StarFilled /></el-icon>
+              <span>{{ roleLabel(userStore.user?.role || '') }}</span>
+            </div>
+          </el-form-item>
+
+          <!-- 所属门店（店员/管理员可见） -->
+          <el-form-item
+            v-if="(userStore.user?.role === 'staff' || userStore.user?.role === 'admin') && userStore.user?.bound_store_name"
+            label="所属门店"
+          >
+            <span class="info-value store-info">
+              <el-icon :size="16"><Shop /></el-icon>
+              {{ userStore.user.bound_store_name }}
+            </span>
           </el-form-item>
 
           <!-- 账户状态 -->
@@ -623,10 +633,27 @@ const roleColor = (role: string) => {
   gap: 16px;
 }
 
-.role-tag {
-  border: none;
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 13px;
   font-weight: 600;
-  padding: 0 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.role-badge-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .meta-desc {
@@ -635,6 +662,26 @@ const roleColor = (role: string) => {
   background: #f5f7fa;
   padding: 4px 12px;
   border-radius: 12px;
+}
+
+.meta-store {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #409eff;
+  background: #ecf5ff;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.store-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #409eff;
+  font-weight: 500;
 }
 
 /* ========== 裁剪弹窗 ========== */

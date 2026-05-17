@@ -155,8 +155,8 @@ const loadCustomerOptions = async () => {
   }
 }
 
-// 监听过滤条件变化自动刷新
-watch([filterOwnership, filterOwnerId], () => {
+// 监听过滤条件和门店切换自动刷新
+watch([filterOwnership, filterOwnerId, () => storeStore.currentStoreId], () => {
   fetchPets()
 })
 

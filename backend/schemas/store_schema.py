@@ -41,8 +41,11 @@ class UserStoreBase(BaseModel):
     is_primary: bool = False
 
 
-class UserStoreCreate(UserStoreBase):
-    pass
+class UserStoreCreate(BaseModel):
+    """绑定用户到门店的请求体，store_id 由路径参数提供"""
+    user_id: int
+    store_id: int = 0  # 由端点自动覆盖为路径参数
+    is_primary: bool = False
 
 
 class UserStoreResponse(UserStoreBase):

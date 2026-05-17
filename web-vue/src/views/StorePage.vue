@@ -74,15 +74,17 @@ onMounted(() => {
   loadUserOptions()
 })
 
-// 加载用户下拉选项
+// 加载用户下拉选项（排除顾客角色，只显示管理员和店员）
 const loadUserOptions = async () => {
   try {
     const res = await adminApi.listUsers()
-    userOptions.value = res.data.map((u: { id: number; nickname: string; role: string }) => ({
-      id: u.id,
-      nickname: u.nickname,
-      role: u.role,
-    }))
+    userOptions.value = res.data
+      .filter((u: { role: string }) => u.role !== 'customer')
+      .map((u: { id: number; nickname: string; role: string }) => ({
+        id: u.id,
+        nickname: u.nickname,
+        role: u.role,
+      }))
   } catch { /* ignore */ }
 }
 

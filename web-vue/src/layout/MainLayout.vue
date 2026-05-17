@@ -175,10 +175,11 @@ onMounted(async () => {
             placeholder="选择门店"
             class="store-switcher"
             size="small"
-            clearable
+            :clearable="storeStore.canViewAll"
             @change="(val: number | null) => storeStore.switchStore(val)"
           >
-            <el-option label="全部门店" :value="null" />
+            <!-- 仅admin可查看全部门店 -->
+            <el-option v-if="storeStore.canViewAll" label="全部门店" :value="null" />
 
             <el-option v-for="s in storeStore.myStores" :key="s.id" :label="s.name" :value="s.id">
               <span>{{ s.name }}</span>

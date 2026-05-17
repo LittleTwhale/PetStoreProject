@@ -15,11 +15,8 @@ import {
 } from '@element-plus/icons-vue'
 import { customerApi, type CustomerProfile } from '@/api/customer'
 import { adminApi } from '@/api'
-import { useStoreStore } from '@/stores/store'
 
 interface UserOption { id: number; nickname: string; role: string }
-
-const storeStore = useStoreStore()
 
 // ========== 数据状态 ==========
 const customers = ref<CustomerProfile[]>([])
@@ -81,10 +78,8 @@ const membershipTagType = (level: string) => {
 const fetchCustomers = async () => {
   isLoading.value = true
   try {
-    const res = await customerApi.list({
-      limit: 500,
-      store_id: storeStore.currentStoreId ?? undefined,
-    })
+    // 顾客不绑定门店，不传 store_id 以获取全部客户
+    const res = await customerApi.list({ limit: 500 })
     customers.value = res.data
   } catch (err: unknown) {
     ElMessage.error(
@@ -156,7 +151,6 @@ const handleCreate = async () => {
       membership_level: createForm.membership_level,
       points: createForm.points,
       balance: createForm.balance,
-      store_id: storeStore.currentStoreId ?? undefined,
     })
     ElMessage.success('客户档案创建成功')
     createDialogVisible.value = false

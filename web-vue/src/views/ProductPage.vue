@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // views/ProductPage.vue — 商品管理
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
 import { Plus, Search, EditPen, Delete, Goods, Present } from '@element-plus/icons-vue'
@@ -80,6 +80,12 @@ const fetchProducts = async () => {
 }
 
 onMounted(() => {
+  fetchProducts()
+  loadDropdownData()
+})
+
+// 监听门店切换自动刷新
+watch(() => storeStore.currentStoreId, () => {
   fetchProducts()
   loadDropdownData()
 })

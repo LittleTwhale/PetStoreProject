@@ -13,7 +13,10 @@ export interface UserInfo {
   created_at: string
   updated_at: string
   identifier: string | null
-  store_id?: number | null
+  /** 员工绑定的门店ID（staff/admin登录后由后端返回） */
+  bound_store_id?: number | null
+  /** 员工绑定的门店名称 */
+  bound_store_name?: string | null
 }
 
 export const useUserStore = defineStore('user', () => {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // views/ServicePage.vue — 服务项目管理
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus, Search, EditPen, Delete, Scissor, Coin } from '@element-plus/icons-vue'
@@ -62,6 +62,9 @@ const fetchServices = async () => {
 }
 
 onMounted(() => { fetchServices() })
+
+// 监听门店切换自动刷新
+watch(() => storeStore.currentStoreId, () => { fetchServices() })
 
 // ========== 创建 ==========
 const resetCreateForm = () => {

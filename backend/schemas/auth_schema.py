@@ -35,6 +35,8 @@ class UserInfo(BaseModel):
     created_at: datetime
     updated_at: datetime
     identifier: str | None = None
+    bound_store_id: int | None = None
+    bound_store_name: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -69,6 +71,7 @@ class AdminUpdateUserReq(BaseModel):
 class UserListItem(BaseModel):
     id: int
     identifier: str
+
     nickname: str
     avatar: str | None
     role: str

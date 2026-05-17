@@ -31,7 +31,7 @@ def upload_product_cover(
 
 @router.get("/", response_model=List[ProductResponse])
 def read_products(
-    store_id: Optional[int] = Query(None, description="按门店过滤"),
+    store_id: Optional[int] = Query(None, description="按门店过滤（staff忽略此参数，自动使用绑定门店）"),
     product_type: Optional[str] = Query(None, description="类型: goods / pet"),
     search: Optional[str] = Query(None, description="按名称搜索"),
     skip: int = 0,
@@ -39,10 +39,11 @@ def read_products(
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """获取商品列表"""
+    """获取商品列表。admin可查看全部或指定门店，staff仅能查看绑定门店的商品"""
     security.require_admin_or_staff(current_user)
+    effective_store_id = security.get_effective_store_id(current_user, store_id, db)
     items = product_crud.get_products(
-        db, store_id=store_id, product_type=product_type,
+        db, store_id=effective_store_id, product_type=product_type,
         search=search, skip=skip, limit=limit,
     )
     result = []
@@ -68,8 +69,9 @@ def create_product(
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """创建商品"""
+    """创建商品。staff自动绑定到所属门店，admin可指定门店"""
     security.require_admin_or_staff(current_user)
+    product.store_id = security.get_effective_store_id(current_user, product.store_id, db)
     return product_crud.create_product(db, product)
 
 
@@ -84,6 +86,9 @@ def read_product(
     p = product_crud.get_product_by_id(db, product_id)
     if not p:
         raise HTTPException(status_code=404, detail="商品不存在")
+    # staff 只能查看绑定门店的商品
+    if current_user.role == "staff":
+        security.require_store_access(current_user, p.store_id, db)
     return ProductResponse(
         id=p.id, store_id=p.store_id, name=p.name,
         product_type=p.product_type, pet_id=p.pet_id,
@@ -105,11 +110,14 @@ def update_product(
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """更新商品信息"""
+    """更新商品信息。staff只能修改绑定门店的商品"""
     security.require_admin_or_staff(current_user)
-    updated = product_crud.update_product(db, product_id, product)
-    if not updated:
+    existing = product_crud.get_product_by_id(db, product_id)
+    if not existing:
         raise HTTPException(status_code=404, detail="商品不存在")
+    if current_user.role == "staff":
+        security.require_store_access(current_user, existing.store_id, db)
+    updated = product_crud.update_product(db, product_id, product)
     return updated
 
 
@@ -119,8 +127,13 @@ def delete_product(
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """下架商品"""
+    """下架商品。staff只能下架绑定门店的商品"""
     security.require_admin_or_staff(current_user)
+    existing = product_crud.get_product_by_id(db, product_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="商品不存在")
+    if current_user.role == "staff":
+        security.require_store_access(current_user, existing.store_id, db)
     success = product_crud.soft_delete_product(db, product_id)
     if not success:
         raise HTTPException(status_code=404, detail="商品不存在")

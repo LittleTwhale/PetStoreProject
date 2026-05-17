@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // views/InventoryLogPage.vue — 库存流水明细
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Document } from '@element-plus/icons-vue'
 import { inventoryApi, type InventoryLog, type InventoryItem } from '@/api/inventory'
@@ -65,6 +65,9 @@ const fetchItems = async () => {
 }
 
 onMounted(() => { fetchLogs(); fetchItems() })
+
+// 监听门店切换自动刷新
+watch(() => storeStore.currentStoreId, () => { fetchLogs(); fetchItems() })
 </script>
 
 <template>

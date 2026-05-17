@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // views/OrderPage.vue — 订单管理
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus, Search, EditPen, Document, Coin, CreditCard, RefreshRight } from '@element-plus/icons-vue'
@@ -100,6 +100,9 @@ const fetchOrders = async () => {
 }
 
 onMounted(() => { fetchOrders() })
+
+// 监听门店切换自动刷新
+watch(() => storeStore.currentStoreId, () => { fetchOrders() })
 
 // ========== 支付 ==========
 const handlePay = async (order: Order) => {

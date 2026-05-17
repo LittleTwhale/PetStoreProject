@@ -18,7 +18,8 @@ def get_dashboard_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """获取数据面板聚合数据"""
+    """获取数据面板聚合数据。admin可查看全部或指定门店，staff仅能查看绑定门店的数据"""
     security.require_admin_or_staff(current_user)
-    data = dashboard_crud.get_dashboard_data(db, store_id=store_id)
+    effective_store_id = security.get_effective_store_id(current_user, store_id, db)
+    data = dashboard_crud.get_dashboard_data(db, store_id=effective_store_id)
     return DashboardResponse(**data)

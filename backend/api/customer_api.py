@@ -15,14 +15,15 @@ router = APIRouter(tags=["客户档案管理 (Admin/Staff)"])
 @router.get("/", response_model=List[CustomerProfileResponse])
 def read_customers(
     search: Optional[str] = Query(None, description="按客户姓名或电话模糊搜索"),
-    store_id: Optional[int] = Query(None, description="按门店ID过滤"),
+    store_id: Optional[int] = Query(None, description="按门店ID过滤（可选，顾客不强制绑定门店）"),
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """获取客户列表（包含名下宠物），支持按姓名/电话搜索和门店过滤"""
+    """获取客户列表（包含名下宠物）。顾客不绑定门店，admin/staff 均可查看全部客户"""
     security.require_admin_or_staff(current_user)
+    # 顾客可能去不同门店，不强制按门店过滤；store_id 参数直接透传
     customers = customer_crud.get_customers(db, skip=skip, limit=limit, search=search, store_id=store_id)
     return customers
 
@@ -47,7 +48,7 @@ def create_new_customer(
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """后台直接建档新客户（一个基础用户只能有一个客户档案）"""
+    """后台直接建档新客户。顾客不强制绑定门店，store_id 可选"""
     security.require_admin_or_staff(current_user)
     try:
         return customer_crud.create_customer(db, customer)
@@ -62,11 +63,12 @@ def update_existing_customer(
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """后台修改客户资料（如充值余额、更新会员等级、修改联系方式）"""
+    """后台修改客户资料。顾客不绑定门店，admin/staff 均可修改"""
     security.require_admin_or_staff(current_user)
-    updated_customer = customer_crud.update_customer(db, customer_id, customer)
-    if updated_customer is None:
+    existing = customer_crud.get_customer_by_id(db, customer_id)
+    if existing is None:
         raise HTTPException(status_code=404, detail="客户档案不存在")
+    updated_customer = customer_crud.update_customer(db, customer_id, customer)
     return updated_customer
 
 
@@ -76,9 +78,8 @@ def delete_customer(
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """删除客户档案（关联宠物不会删除，owner_id 将被置空）"""
+    """删除客户档案。顾客不绑定门店，admin/staff 均可删除"""
     security.require_admin_or_staff(current_user)
-    # 先获取客户信息，统计名下宠物数量
     customer = customer_crud.get_customer_by_id(db, customer_id)
     if not customer:
         raise HTTPException(status_code=404, detail="客户档案不存在")

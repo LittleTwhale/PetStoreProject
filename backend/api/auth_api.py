@@ -88,8 +88,17 @@ def get_me(
     current_user: Annotated[User, Depends(security.get_current_user)],
     db: Session = Depends(get_db),
 ):
-    """需要携带有效的 Bearer Token，返回当前登录用户的基础信息（含登录账号）"""
+    """需要携带有效的 Bearer Token，返回当前登录用户的基础信息（含登录账号和绑定门店）"""
     auth_record = auth_crud.get_auth_by_user_id(db, current_user.id)
+    # 获取用户绑定的门店信息
+    bound_store_id = None
+    bound_store_name = None
+    if current_user.role in ("admin", "staff"):
+        from crud.store_crud import get_user_stores
+        stores = get_user_stores(db, current_user.id)
+        if stores:
+            bound_store_id = stores[0].id
+            bound_store_name = stores[0].name
     return {
         "id": current_user.id,
         "nickname": current_user.nickname,
@@ -101,6 +110,8 @@ def get_me(
         "created_at": current_user.created_at,
         "updated_at": current_user.updated_at,
         "identifier": auth_record.identifier if auth_record else None,
+        "bound_store_id": bound_store_id,
+        "bound_store_name": bound_store_name,
     }
 
 
@@ -117,7 +128,30 @@ def update_me(
         nickname=update_data.nickname,
         position_desc=update_data.position_desc,
     )
-    return updated
+    # 附带门店绑定信息
+    auth_record = auth_crud.get_auth_by_user_id(db, updated.id)
+    bound_store_id = None
+    bound_store_name = None
+    if updated.role in ("admin", "staff"):
+        from crud.store_crud import get_user_stores
+        stores = get_user_stores(db, updated.id)
+        if stores:
+            bound_store_id = stores[0].id
+            bound_store_name = stores[0].name
+    return {
+        "id": updated.id,
+        "nickname": updated.nickname,
+        "avatar": updated.avatar,
+        "role": updated.role,
+        "position_desc": updated.position_desc,
+        "permissions": updated.permissions,
+        "is_active": updated.is_active,
+        "created_at": updated.created_at,
+        "updated_at": updated.updated_at,
+        "identifier": auth_record.identifier if auth_record else None,
+        "bound_store_id": bound_store_id,
+        "bound_store_name": bound_store_name,
+    }
 
 
 @router.post("/me/avatar", response_model=AvatarRes, summary="上传/更换头像")

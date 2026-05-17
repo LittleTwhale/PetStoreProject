@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // views/InventoryItemPage.vue — 库存物品管理
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import {
@@ -99,6 +99,9 @@ const fetchCategories = async () => {
 }
 
 onMounted(() => { fetchItems(); fetchCategories() })
+
+// 监听门店切换自动刷新列表
+watch(() => storeStore.currentStoreId, () => { fetchItems(); fetchCategories() })
 
 // 表格行样式：低库存高亮
 const tableRowClass = ({ row }: { row: InventoryItem }) =>

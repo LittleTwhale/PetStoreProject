@@ -104,7 +104,7 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const token = localStorage.getItem('token')
 
   // 未登录只能访问登录页
@@ -117,6 +117,27 @@ router.beforeEach((to, from, next) => {
   if (to.path === '/login' && token) {
     next('/dashboard')
     return
+  }
+
+  // 检查管理员权限的路由
+  if (to.meta.requiresAdmin) {
+    try {
+      const { useUserStore } = await import('@/stores/user')
+      const userStore = useUserStore()
+      // 如果用户信息未加载，先获取
+      if (!userStore.user) {
+        await userStore.fetchUser()
+      }
+      if (userStore.user?.role !== 'admin') {
+        // 非管理员跳转到首页
+        next('/dashboard')
+        return
+      }
+    } catch {
+      // 获取用户信息失败，跳转登录页
+      next('/login')
+      return
+    }
   }
 
   next()

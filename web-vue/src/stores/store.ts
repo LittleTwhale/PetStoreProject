@@ -2,8 +2,11 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { storeApi, type Store } from '@/api/store'
+import { useUserStore } from './user'
 
 export const useStoreStore = defineStore('store', () => {
+  const userStore = useUserStore()
+
   // 1. 读取本地存储
   const storedId = localStorage.getItem('currentStoreId')
 
@@ -21,9 +24,20 @@ export const useStoreStore = defineStore('store', () => {
     }
   }
 
+  // staff 用户强制使用绑定门店
+  if (userStore.user?.role === 'staff' && userStore.user?.bound_store_id) {
+    initialId = userStore.user.bound_store_id
+  }
+
   // 3. 初始化 ref
   const currentStoreId = ref<number | null>(initialId)
   const myStores = ref<Store[]>([])
+
+  /** staff 是否允许切换门店（staff只能看绑定门店，不可切换或查看全部） */
+  const canSwitchStore = computed(() => userStore.user?.role === 'admin')
+
+  /** staff 是否允许查看全部门店 */
+  const canViewAll = computed(() => userStore.user?.role === 'admin')
 
   // 计算当前选中的门店完整信息
   const currentStore = computed(
@@ -33,15 +47,29 @@ export const useStoreStore = defineStore('store', () => {
   // 获取门店列表
   async function fetchMyStores() {
     try {
-      const res = await storeApi.list({ limit: 500 })
-      myStores.value = res.data
+      // staff 使用 /stores/my 获取绑定门店
+      if (userStore.user?.role === 'staff') {
+        const res = await storeApi.my()
+        myStores.value = res.data
+        // staff 自动选中第一个绑定门店
+        if (myStores.value.length > 0 && currentStoreId.value === null) {
+          switchStore(myStores.value[0].id)
+        }
+      } else {
+        const res = await storeApi.list({ limit: 500 })
+        myStores.value = res.data
+      }
     } catch {
       myStores.value = []
     }
   }
 
-  // 切换门店方法（支持传入 null 代表全部门店）
+  // 切换门店方法（支持传入 null 代表全部门店，仅admin可用）
   function switchStore(storeId: number | null) {
+    // staff 不可切换到全部门店
+    if (userStore.user?.role === 'staff' && storeId === null) {
+      return
+    }
     currentStoreId.value = storeId
     if (storeId === null) {
       localStorage.removeItem('currentStoreId')
@@ -50,5 +78,13 @@ export const useStoreStore = defineStore('store', () => {
     }
   }
 
-  return { currentStoreId, myStores, currentStore, fetchMyStores, switchStore }
+  return {
+    currentStoreId,
+    myStores,
+    currentStore,
+    canSwitchStore,
+    canViewAll,
+    fetchMyStores,
+    switchStore,
+  }
 })

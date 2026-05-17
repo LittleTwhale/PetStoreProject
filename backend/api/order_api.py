@@ -71,10 +71,11 @@ def read_orders(
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """获取订单列表"""
+    """获取订单列表。admin可查看全部或指定门店，staff仅能查看绑定门店的订单"""
     security.require_admin_or_staff(current_user)
+    effective_store_id = security.get_effective_store_id(current_user, store_id, db)
     orders = order_crud.get_orders(
-        db, store_id=store_id, order_type=order_type, status=status,
+        db, store_id=effective_store_id, order_type=order_type, status=status,
         search=search, start_date=start_date, end_date=end_date,
         customer_id=customer_id, skip=skip, limit=limit,
     )
@@ -101,10 +102,12 @@ def create_order(
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """创建订单（自动扣减库存）"""
+    """创建订单。staff自动绑定到所属门店，admin可指定门店"""
     security.require_admin_or_staff(current_user)
     # 覆盖操作人为当前用户
     order.operator_id = current_user.id
+    # staff自动绑定门店
+    order.store_id = security.get_effective_store_id(current_user, order.store_id, db)
     result = order_crud.create_order(db, order)
     return _build_order_response(result)
 
@@ -120,6 +123,9 @@ def read_order(
     o = order_crud.get_order_by_id(db, order_id)
     if not o:
         raise HTTPException(status_code=404, detail="订单不存在")
+    # staff 只能查看绑定门店的订单
+    if current_user.role == "staff":
+        security.require_store_access(current_user, o.store_id, db)
     return _build_order_response(o)
 
 

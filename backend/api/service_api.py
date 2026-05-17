@@ -25,10 +25,11 @@ def read_services(
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """获取服务项目列表"""
+    """获取服务项目列表。admin可查看全部或指定门店，staff仅能查看绑定门店的服务"""
     security.require_admin_or_staff(current_user)
+    effective_store_id = security.get_effective_store_id(current_user, store_id, db)
     return service_crud.get_services(
-        db, store_id=store_id, category=category,
+        db, store_id=effective_store_id, category=category,
         search=search, skip=skip, limit=limit,
     )
 

@@ -78,6 +78,56 @@ def require_admin_or_staff(user: User) -> User:
     return user
 
 
+# ==================== 门店权限辅助函数 ====================
+
+def get_staff_store_ids(user: User, db) -> list[int] | None:
+    """
+    获取用户可见的门店ID列表。
+    - admin 返回 None（表示全部门店可见）
+    - staff 返回其绑定的门店ID列表
+    """
+    if user.role == "admin":
+        return None
+    # 延迟导入避免循环依赖
+    from crud.store_crud import get_user_stores
+    stores = get_user_stores(db, user.id)
+    return [s.id for s in stores]
+
+
+def get_effective_store_id(user: User, requested_store_id: int | None, db) -> int | None:
+    """
+    获取实际操作的门店ID。
+    - admin 使用传入的 store_id（可为None）
+    - staff 忽略传入参数，强制使用其绑定门店ID
+    - 如果 staff 未绑定门店则抛出403
+    """
+    if user.role == "admin":
+        return requested_store_id
+    store_ids = get_staff_store_ids(user, db)
+    if not store_ids:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="您尚未绑定任何门店，请联系管理员",
+        )
+    return store_ids[0]  # staff默认使用第一个绑定门店
+
+
+def require_store_access(user: User, store_id: int, db):
+    """
+    检查用户是否有权访问指定门店。
+    - admin 始终通过
+    - staff 需验证是否绑定到该门店
+    """
+    if user.role == "admin":
+        return
+    store_ids = get_staff_store_ids(user, db)
+    if not store_ids or store_id not in store_ids:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权访问该门店的数据",
+        )
+
+
 def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security_scheme)],
     db: Session = Depends(get_db),

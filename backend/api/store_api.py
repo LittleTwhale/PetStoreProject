@@ -15,14 +15,6 @@ from models.user_model import User
 router = APIRouter(tags=["门店管理 (Admin/Staff)"])
 
 
-def _get_visible_store_ids(current_user: User, db: Session) -> Optional[List[int]]:
-    """staff 用户返回其绑定的门店ID列表，admin 返回 None 表示全量"""
-    if current_user.role == "admin":
-        return None
-    stores = store_crud.get_user_stores(db, current_user.id)
-    return [s.id for s in stores]
-
-
 # ==================== 门店 CRUD ====================
 
 @router.get("/", response_model=List[StoreResponse])
@@ -39,7 +31,7 @@ def read_stores(
     if current_user.role == "admin":
         stores = store_crud.get_stores(db, skip=skip, limit=limit, search=search)
     else:
-        user_store_ids = _get_visible_store_ids(current_user, db)
+        user_store_ids = security.get_staff_store_ids(current_user, db)
         if not user_store_ids:
             return []
         stores = db.query(store_crud.Store).filter(
@@ -68,6 +60,25 @@ def create_store(
         raise HTTPException(status_code=409, detail=str(e))
 
 
+# ==================== 当前用户门店 ====================
+
+@router.get("/my", response_model=List[StoreResponse])
+def read_my_stores(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(security.get_current_user),
+):
+    """获取当前用户绑定的门店列表（staff返回自己的门店，admin返回全部）"""
+    security.require_admin_or_staff(current_user)
+    if current_user.role == "admin":
+        return store_crud.get_stores(db, limit=500)
+    store_ids = security.get_staff_store_ids(current_user, db)
+    if not store_ids:
+        return []
+    return db.query(store_crud.Store).filter(
+        store_crud.Store.id.in_(store_ids)
+    ).all()
+
+
 @router.get("/{store_id}", response_model=StoreResponse)
 def read_store(
     store_id: int,
@@ -81,9 +92,7 @@ def read_store(
         raise HTTPException(status_code=404, detail="门店不存在")
     # staff 只能查看自己绑定的门店
     if current_user.role == "staff":
-        user_store_ids = _get_visible_store_ids(current_user, db)
-        if store_id not in (user_store_ids or []):
-            raise HTTPException(status_code=403, detail="无权查看该门店")
+        security.require_store_access(current_user, store_id, db)
     return store
 
 
@@ -128,8 +137,15 @@ def bind_user_to_store_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """将用户绑定到门店（管理员）"""
+    """将用户绑定到门店（管理员），仅允许绑定管理员或店员，不允许绑定顾客"""
     security.require_admin(current_user)
+    # 检查目标用户角色，不允许绑定顾客
+    from models.user_model import User as UserModel
+    target_user = db.query(UserModel).filter(UserModel.id == data.user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    if target_user.role == "customer":
+        raise HTTPException(status_code=400, detail="不能将顾客角色绑定到门店，请先将用户角色改为管理员或店员")
     # 强制 data 中的 store_id 与路径一致
     data.store_id = store_id
     try:
@@ -166,9 +182,7 @@ def get_store_users_endpoint(
         raise HTTPException(status_code=404, detail="门店不存在")
     # staff 只能查看自己绑定的门店
     if current_user.role == "staff":
-        user_store_ids = _get_visible_store_ids(current_user, db)
-        if store_id not in (user_store_ids or []):
-            raise HTTPException(status_code=403, detail="无权查看该门店用户")
+        security.require_store_access(current_user, store_id, db)
     rows = store_crud.get_store_users(db, store_id)
     # 将元组 (UserStore, User) 转为 StoreUserResponse
     return [

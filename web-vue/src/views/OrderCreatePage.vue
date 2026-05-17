@@ -109,8 +109,8 @@ const recalcSubtotal = (idx: number) => {
 const totalAmount = computed(() => items.value.reduce((s, r) => s + r.subtotal, 0))
 const finalAmount = computed(() => Math.max(0, totalAmount.value - discountAmount.value))
 
-// 加载数据
-onMounted(async () => {
+// 加载下拉数据
+const loadDropdownData = async () => {
   try {
     const [pRes, sRes, cRes] = await Promise.all([
       productApi.list({ limit: 500, store_id: storeStore.currentStoreId ?? undefined }),
@@ -129,12 +129,19 @@ onMounted(async () => {
   } catch {
     ElMessage.error('加载基础数据失败')
   }
-})
+}
+
+onMounted(() => { loadDropdownData() })
 
 // 切换订单类型时清空明细
 watch(orderType, () => {
   items.value = [createEmptyRow()]
   discountAmount.value = 0
+})
+
+// 监听门店切换自动刷新商品和服务列表
+watch(() => storeStore.currentStoreId, () => {
+  loadDropdownData()
 })
 
 // 提交
