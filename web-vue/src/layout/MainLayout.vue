@@ -106,9 +106,12 @@ onMounted(async () => {
     >
       <!-- Logo 区域 -->
       <div class="logo-area" :class="{ collapsed: isCollapse }">
-        <el-icon :size="28" color="#fff">
-          <Present />
-        </el-icon>
+        <img
+          src="@/assets/images/logo1.png"
+          alt="非诚勿宠"
+          class="sidebar-logo-img"
+          :class="{ collapsed: isCollapse }"
+        />
         <transition name="fade">
           <span v-show="!isCollapse" class="logo-text">非诚勿宠</span>
         </transition>
@@ -262,6 +265,19 @@ onMounted(async () => {
   color: #fff;
   letter-spacing: 1px;
   white-space: nowrap;
+}
+
+.sidebar-logo-img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain; /* 保持比例，不裁剪 */
+  flex-shrink: 0;
+  border-radius: 6px; /* 轻微圆角，更亲和 */
+}
+
+.sidebar-logo-img.collapsed {
+  width: 32px;
+  height: 32px;
 }
 
 /* 侧边栏菜单 */
