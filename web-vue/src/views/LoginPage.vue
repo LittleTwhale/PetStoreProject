@@ -3,7 +3,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { User, Lock, UserFilled, Present, Check } from '@element-plus/icons-vue'
+import { User, Lock, UserFilled,  Check } from '@element-plus/icons-vue'
 import { authApi } from '@/api'
 import { useUserStore } from '@/stores/user'
 
@@ -80,8 +80,7 @@ const handleLogin = async () => {
     await router.push('/dashboard')
   } catch (err: unknown) {
     const msg =
-      (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-      '登录失败'
+      (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || '登录失败'
     ElMessage.error(msg)
   } finally {
     isLoading.value = false
@@ -107,8 +106,7 @@ const handleRegister = async () => {
     await router.push('/dashboard')
   } catch (err: unknown) {
     const msg =
-      (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-      '注册失败'
+      (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || '注册失败'
     ElMessage.error(msg)
   } finally {
     isLoading.value = false
@@ -135,9 +133,8 @@ const switchTab = (tab: 'login' | 'register') => {
       <div class="brand-panel">
         <div class="brand-content">
           <div class="brand-icon">
-            <el-icon :size="48"><Present /></el-icon>
+            <img src="@/assets/images/logo.png" alt="非诚勿宠" class="brand-logo-img" />
           </div>
-          <h1 class="brand-name">非诚勿宠</h1>
           <p class="brand-desc">专业 · 贴心的全栈宠物服务平台</p>
           <div class="brand-features">
             <div class="feature-item">
@@ -398,9 +395,18 @@ const switchTab = (tab: 'login' | 'register') => {
 .brand-icon {
   margin-bottom: 16px;
   display: inline-flex;
-  padding: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
   background: rgba(255, 255, 255, 0.15);
   border-radius: 16px;
+}
+
+.brand-logo-img {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  display: block;
 }
 
 .brand-name {
@@ -536,9 +542,8 @@ const switchTab = (tab: 'login' | 'register') => {
 /* 手机尺寸：纵向堆叠，隐藏左侧品牌区 */
 @media (max-width: 767px) {
   .login-page {
-    padding: 16px;
     align-items: flex-start;
-    padding-top: 40px;
+    padding: 40px 16px 16px;
   }
 
   .auth-card {
@@ -561,6 +566,11 @@ const switchTab = (tab: 'login' | 'register') => {
   .brand-icon {
     margin-bottom: 8px;
     padding: 10px;
+  }
+
+  .brand-logo-img {
+    width: 80px;
+    height: 80px;
   }
 
   .brand-name {
