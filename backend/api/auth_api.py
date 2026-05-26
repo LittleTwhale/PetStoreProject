@@ -1,6 +1,5 @@
 # api/auth_api.py
 import os
-import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
@@ -15,19 +14,12 @@ from schemas.auth_schema import (
 from crud import auth_crud
 from core import security
 from models.user_model import User
+from upload_utils import save_upload_image, remove_upload_image
 
 router = APIRouter(tags=["认证"])
 
-# 头像存储目录（优先使用项目根 uploads 目录）
-from upload_utils import UPLOADS_DIR, save_upload_image, remove_upload_image
-AVATAR_DIR = os.path.join(UPLOADS_DIR, "avatars")
-os.makedirs(AVATAR_DIR, exist_ok=True)
-# 兼容旧路径
+# 兼容旧路径（/static/avatars/），用于清理旧头像文件
 LEGACY_AVATAR_DIR = os.path.join(os.path.dirname(__file__), "..", "static", "avatars")
-os.makedirs(LEGACY_AVATAR_DIR, exist_ok=True)
-
-ALLOWED_AVATAR_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
-MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5MB
 
 
 # ==================== 登录 & 注册 ====================
@@ -161,33 +153,17 @@ def upload_avatar(
     file: UploadFile = File(...),
 ):
     """上传用户头像（支持 jpg/png/gif/webp，最大 5MB，自动清理旧头像文件）"""
-    # 校验文件类型
-    if file.content_type not in ALLOWED_AVATAR_TYPES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="仅支持 JPG、PNG、GIF、WebP 格式的图片",
-        )
-
-    # 校验文件大小
-    contents = file.file.read()
-    if len(contents) > MAX_AVATAR_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="头像文件大小不能超过 5MB",
-        )
-
     # 清理旧头像文件（新路径和旧路径都检查）
     if current_user.avatar:
-        # 新路径 /uploads/avatars/
         remove_upload_image(current_user.avatar)
-        # 旧路径 /static/avatars/
+        # 兼容旧路径 /static/avatars/
         if current_user.avatar.startswith("/static/avatars/"):
             old_filename = current_user.avatar.rsplit("/", 1)[-1]
             old_filepath = os.path.join(LEGACY_AVATAR_DIR, old_filename)
             if os.path.isfile(old_filepath):
                 os.remove(old_filepath)
 
-    # 通过 main.py 的通用函数保存
+    # 统一使用 upload_utils 保存文件（内置格式/大小校验）
     avatar_url = save_upload_image(file, "avatars")
 
     # 更新用户头像 URL
