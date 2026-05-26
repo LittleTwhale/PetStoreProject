@@ -23,6 +23,8 @@ def save_upload_image(file: UploadFile, subdir: str) -> str:
     if file.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(status_code=400, detail="仅支持 JPG/PNG/GIF/WebP 格式")
     contents = file.file.read()
+    if len(contents) == 0:
+        raise HTTPException(status_code=400, detail="上传文件为空")
     if len(contents) > MAX_IMAGE_SIZE:
         raise HTTPException(status_code=400, detail="文件大小不能超过 5MB")
     ext = (file.filename or "image.png").rsplit(".", 1)[-1].lower()
