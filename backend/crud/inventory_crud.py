@@ -11,12 +11,10 @@ from schemas.inventory_schema import (
 
 # ==================== 分类 CRUD ====================
 
-def get_categories(db: Session, store_id: int | None = None,
+def get_categories(db: Session,
                    skip: int = 0, limit: int = 100, search: str | None = None):
-    """获取库存分类列表"""
+    """获取库存分类列表（所有门店通用）"""
     query = db.query(InventoryCategory)
-    if store_id is not None:
-        query = query.filter(InventoryCategory.store_id == store_id)
     if search:
         query = query.filter(InventoryCategory.name.like(f"%{search}%"))
     return query.offset(skip).limit(limit).all()

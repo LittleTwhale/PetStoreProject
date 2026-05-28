@@ -5,9 +5,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus, Search, EditPen, Delete, Collection } from '@element-plus/icons-vue'
 import { inventoryApi, type InventoryCategory } from '@/api/inventory'
-import { useStoreStore } from '@/stores/store'
-
-const storeStore = useStoreStore()
 
 // ========== 数据 ==========
 const categories = ref<InventoryCategory[]>([])
@@ -35,10 +32,7 @@ const editForm = reactive({ name: '', description: '' })
 const fetchCategories = async () => {
   isLoading.value = true
   try {
-    const res = await inventoryApi.listCategories({
-      limit: 500,
-      store_id: storeStore.currentStoreId ?? undefined,
-    })
+    const res = await inventoryApi.listCategories({ limit: 500 })
     categories.value = res.data
   } catch {
     ElMessage.error('获取分类列表失败')
@@ -60,14 +54,12 @@ const handleCreate = async () => {
   if (!createFormRef.value) return
   const valid = await createFormRef.value.validate().catch(() => false)
   if (!valid) return
-  if (!storeStore.currentStoreId) { ElMessage.warning('请先选择门店'); return }
 
   createLoading.value = true
   try {
     await inventoryApi.createCategory({
       name: createForm.name,
       description: createForm.description || undefined,
-      store_id: storeStore.currentStoreId,
     })
     ElMessage.success('分类创建成功')
     createDialogVisible.value = false

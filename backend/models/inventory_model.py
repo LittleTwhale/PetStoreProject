@@ -14,7 +14,6 @@ class InventoryCategory(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
     name = Column(String(50), nullable=False, comment="分类名称(如:狗粮、猫砂、药品)")
     description = Column(String(200), nullable=True, comment="分类描述")
-    store_id = Column(Integer, ForeignKey("stores.id", ondelete="CASCADE"), nullable=False, comment="所属门店")
 
     is_active = Column(Boolean, default=True, comment="是否启用")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), comment="创建时间")

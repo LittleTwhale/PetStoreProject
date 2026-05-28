@@ -9,7 +9,6 @@ from datetime import datetime
 class InventoryCategoryBase(BaseModel):
     name: str
     description: Optional[str] = None
-    store_id: int
 
 
 class InventoryCategoryCreate(InventoryCategoryBase):

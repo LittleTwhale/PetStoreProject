@@ -90,10 +90,7 @@ const fetchItems = async () => {
 
 const fetchCategories = async () => {
   try {
-    const res = await inventoryApi.listCategories({
-      limit: 500,
-      store_id: storeStore.currentStoreId ?? undefined,
-    })
+    const res = await inventoryApi.listCategories({ limit: 500 })
     categories.value = res.data
   } catch { /* ignore */ }
 }

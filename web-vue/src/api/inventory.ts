@@ -5,7 +5,6 @@ export interface InventoryCategory {
   id: number
   name: string
   description: string | null
-  store_id: number
   is_active: boolean
   created_at: string
   updated_at: string
@@ -45,10 +44,10 @@ export interface InventoryLog {
 
 export const inventoryApi = {
   // ==================== 分类 ====================
-  listCategories: (params?: { store_id?: number; search?: string; skip?: number; limit?: number }) =>
+  listCategories: (params?: { search?: string; skip?: number; limit?: number }) =>
     api.get('/inventory/categories/', { params }),
 
-  createCategory: (data: { name: string; description?: string; store_id: number }) =>
+  createCategory: (data: { name: string; description?: string }) =>
     api.post('/inventory/categories/', data),
 
   updateCategory: (id: number, data: { name?: string; description?: string; is_active?: boolean }) =>

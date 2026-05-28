@@ -30,16 +30,15 @@ def _get_item_or_404(db: Session, item_id: int) -> InventoryItem:
 
 @router.get("/categories/", response_model=List[InventoryCategoryResponse])
 def read_categories(
-    store_id: Optional[int] = Query(None, description="按门店过滤"),
     search: Optional[str] = Query(None, description="按名称搜索"),
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
     current_user: User = Depends(security.get_current_user),
 ):
-    """获取库存分类列表"""
+    """获取库存分类列表（所有门店通用）"""
     security.require_admin_or_staff(current_user)
-    return inventory_crud.get_categories(db, store_id=store_id, skip=skip, limit=limit, search=search)
+    return inventory_crud.get_categories(db, skip=skip, limit=limit, search=search)
 
 
 @router.post("/categories/", response_model=InventoryCategoryResponse, status_code=201)
