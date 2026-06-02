@@ -104,8 +104,14 @@ onMounted(() => { fetchOrders() })
 // 监听门店切换自动刷新
 watch(() => storeStore.currentStoreId, () => { fetchOrders() })
 
-// ========== 支付 ==========
+// ========== 支付（带防重复提交） ==========
+const payingOrderIds = reactive(new Set<number>())
+
 const handlePay = async (order: Order) => {
+  // 已经在该订单的支付请求中，直接忽略快速重复点击
+  if (payingOrderIds.has(order.id)) return
+  payingOrderIds.add(order.id)
+
   try {
     await orderApi.updateStatus(order.id, {
       status: 'paid',
@@ -113,7 +119,11 @@ const handlePay = async (order: Order) => {
     })
     ElMessage.success('已确认收款')
     await fetchOrders()
-  } catch { /* ignore */ }
+  } catch {
+    /* 后端状态机校验失败时静默处理 */
+  } finally {
+    payingOrderIds.delete(order.id)
+  }
 }
 
 // ========== 工具函数 ==========
@@ -245,7 +255,10 @@ const formatDate = (d: string) => {
             <el-button type="primary" link :icon="EditPen" @click="openDetailDialog(row)">详情</el-button>
             <el-button
               v-if="row.status === 'pending'"
-              type="success" link :icon="CreditCard" @click="handlePay(row)"
+              type="success" link :icon="CreditCard"
+              :loading="payingOrderIds.has(row.id)"
+              :disabled="payingOrderIds.has(row.id)"
+              @click="handlePay(row)"
             >收款</el-button>
             <el-button
               v-if="row.status !== 'cancelled' && row.status !== 'refunded'"
