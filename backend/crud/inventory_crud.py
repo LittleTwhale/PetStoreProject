@@ -127,7 +127,10 @@ def stock_in(db: Session, item_id: int, quantity: float,
     if quantity <= 0:
         raise ValueError("入库数量必须大于0")
 
-    db_item = get_item_by_id(db, item_id)
+    # 使用悲观行锁防止同时出入库导致的库存变动丢失
+    db_item = db.query(InventoryItem).filter(
+        InventoryItem.id == item_id
+    ).with_for_update().first()
     if not db_item:
         raise ValueError("物品不存在")
 
@@ -156,7 +159,10 @@ def stock_out(db: Session, item_id: int, quantity: float,
     if quantity <= 0:
         raise ValueError("出库数量必须大于0")
 
-    db_item = get_item_by_id(db, item_id)
+    # 使用悲观行锁防止并发出库超卖
+    db_item = db.query(InventoryItem).filter(
+        InventoryItem.id == item_id
+    ).with_for_update().first()
     if not db_item:
         raise ValueError("物品不存在")
     if db_item.quantity < quantity:

@@ -96,9 +96,17 @@ def create_order(db: Session, order_data: OrderCreate):
 
         # 扣减商品库存（仅销售订单的商品类）
         if item.item_type == "product" and item.product_id:
-            product = db.query(Product).filter(Product.id == item.product_id).first()
-            if product and product.stock >= item.quantity:
-                product.stock -= item.quantity
+            # 使用悲观行锁防止并发超卖
+            product = db.query(Product).filter(
+                Product.id == item.product_id
+            ).with_for_update().first()
+            if not product:
+                raise ValueError(f"商品 {item.product_id} 不存在")
+            if product.stock < item.quantity:
+                raise ValueError(
+                    f"商品「{product.name}」库存不足，当前库存 {product.stock}，需要 {item.quantity}"
+                )
+            product.stock -= item.quantity
 
     db.commit()
     db.refresh(db_order)

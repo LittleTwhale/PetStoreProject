@@ -41,3 +41,4 @@ miniapp/.env.local
 .claude/
 CLAUDE.md
 task.md
+optimization.md
