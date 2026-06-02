@@ -136,8 +136,11 @@ ORDER_STATUS_TRANSITIONS: dict[str, set[str]] = {
 
 
 def update_order_status(db: Session, order_id: int, status_data: OrderStatusUpdate):
-    """更新订单状态（含状态机校验）"""
-    db_order = db.query(Order).filter(Order.id == order_id).first()
+    """更新订单状态（含状态机校验 + 库存回滚）"""
+    # 一次性加载订单及明细，避免后续懒加载 N+1
+    db_order = db.query(Order).options(
+        joinedload(Order.items)
+    ).filter(Order.id == order_id).first()
     if not db_order:
         return None
 
@@ -154,6 +157,16 @@ def update_order_status(db: Session, order_id: int, status_data: OrderStatusUpda
     db_order.status = target_status
     if status_data.remark:
         db_order.remark = (db_order.remark or '') + f" [{target_status}] {status_data.remark}"
+
+    # ---- 取消 / 退款：回滚商品库存 ----
+    if target_status in ("cancelled", "refunded"):
+        for item in db_order.items:
+            if item.item_type == "product" and item.product_id:
+                product = db.query(Product).filter(
+                    Product.id == item.product_id
+                ).with_for_update().first()
+                if product:
+                    product.stock += item.quantity
 
     db.commit()
     db.refresh(db_order)
