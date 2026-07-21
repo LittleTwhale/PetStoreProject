@@ -1,4 +1,4 @@
-# schemas/order_schema.py — 订单管理 Schema
+﻿# schemas/order_schema.py — 订单管理 Schema
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
@@ -68,13 +68,10 @@ class OrderCreate(BaseModel):
 
 
 class OrderUpdate(BaseModel):
+    """更新订单基本信息（仅允许修改非财务信息，金额/状态通过专用接口操作）"""
     order_type: Optional[str] = None
     customer_id: Optional[int] = None
-    total_amount: Optional[float] = None
-    discount_amount: Optional[float] = None
-    final_amount: Optional[float] = None
     payment_method: Optional[str] = None
-    status: Optional[str] = None
     operator_id: Optional[int] = None
     remark: Optional[str] = None
 

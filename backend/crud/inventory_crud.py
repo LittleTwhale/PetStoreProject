@@ -1,4 +1,4 @@
-# crud/inventory_crud.py — 库存管理业务逻辑
+﻿# crud/inventory_crud.py — 库存管理业务逻辑
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -44,10 +44,16 @@ def update_category(db: Session, category_id: int, category: InventoryCategoryUp
 
 
 def soft_delete_category(db: Session, category_id: int) -> bool:
+    """停用库存分类，同时级联停用该分类下的所有物品"""
     db_cat = get_category_by_id(db, category_id)
     if not db_cat:
         return False
     db_cat.is_active = False
+    # 级联停用该分类下的所有物品，避免出现"已停用分类下仍有活跃物品"的不一致
+    db.query(InventoryItem).filter(
+        InventoryItem.category_id == category_id,
+        InventoryItem.is_active == True,
+    ).update({"is_active": False}, synchronize_session="fetch")
     db.commit()
     return True
 

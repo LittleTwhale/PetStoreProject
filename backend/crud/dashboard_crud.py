@@ -1,4 +1,4 @@
-# crud/dashboard_crud.py — 数据面板聚合查询
+﻿# crud/dashboard_crud.py — 数据面板聚合查询
 from datetime import datetime, timedelta, date
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
@@ -27,7 +27,7 @@ def get_dashboard_data(db: Session, store_id: int | None = None):
     ).filter(
         Order.created_at >= today,
         Order.created_at < tomorrow,
-        Order.status.in_(['paid', 'completed']),
+        Order.status.in_(["paid", "completed"]),
     )
     today_query = store_filter(today_query, Order)
     today_orders, today_revenue = today_query.first()
@@ -39,14 +39,14 @@ def get_dashboard_data(db: Session, store_id: int | None = None):
     ).filter(
         Order.created_at >= month_start,
         Order.created_at < tomorrow,
-        Order.status.in_(['paid', 'completed']),
+        Order.status.in_(["paid", "completed"]),
     )
     month_query = store_filter(month_query, Order)
     month_orders, month_revenue = month_query.first()
 
     # ---- 待处理订单数 ----
     pending_query = db.query(func.count(Order.id)).filter(
-        Order.status.in_(['pending', 'paid']),
+        Order.status.in_(["pending", "paid"]),
     )
     pending_query = store_filter(pending_query, Order)
     pending_orders = pending_query.scalar() or 0
@@ -73,7 +73,7 @@ def get_dashboard_data(db: Session, store_id: int | None = None):
         ).filter(
             Order.created_at >= day_start,
             Order.created_at < day_end,
-            Order.status.in_(['paid', 'completed']),
+            Order.status.in_(["paid", "completed"]),
         )
         if store_id is not None:
             q = q.filter(Order.store_id == store_id)
@@ -84,15 +84,18 @@ def get_dashboard_data(db: Session, store_id: int | None = None):
             "revenue": float(rev or 0),
         })
 
-    # ---- 热门商品 Top 5 ----
+    # ---- 热门商品 Top 5（按门店过滤） ----
     product_q = db.query(
         OrderItem.product_id,
-        func.count(OrderItem.id).label('cnt'),
-        func.coalesce(func.sum(OrderItem.subtotal), 0).label('rev'),
-    ).filter(
-        OrderItem.item_type == 'product',
+        func.count(OrderItem.id).label("cnt"),
+        func.coalesce(func.sum(OrderItem.subtotal), 0).label("rev"),
+    ).join(Order, OrderItem.order_id == Order.id).filter(
+        OrderItem.item_type == "product",
         OrderItem.product_id.isnot(None),
-    ).group_by(OrderItem.product_id).order_by(text('cnt DESC')).limit(5)
+    )
+    if store_id is not None:
+        product_q = product_q.filter(Order.store_id == store_id)
+    product_q = product_q.group_by(OrderItem.product_id).order_by(text("cnt DESC")).limit(5)
 
     top_products = []
     for row in product_q.all():
@@ -104,16 +107,19 @@ def get_dashboard_data(db: Session, store_id: int | None = None):
             "revenue": float(row.rev),
         })
 
-    # ---- 热门服务 Top 5 ----
+    # ---- 热门服务 Top 5（按门店过滤） ----
     from models.service_model import Service
     service_q = db.query(
         OrderItem.service_id,
-        func.count(OrderItem.id).label('cnt'),
-        func.coalesce(func.sum(OrderItem.subtotal), 0).label('rev'),
-    ).filter(
-        OrderItem.item_type == 'service',
+        func.count(OrderItem.id).label("cnt"),
+        func.coalesce(func.sum(OrderItem.subtotal), 0).label("rev"),
+    ).join(Order, OrderItem.order_id == Order.id).filter(
+        OrderItem.item_type == "service",
         OrderItem.service_id.isnot(None),
-    ).group_by(OrderItem.service_id).order_by(text('cnt DESC')).limit(5)
+    )
+    if store_id is not None:
+        service_q = service_q.filter(Order.store_id == store_id)
+    service_q = service_q.group_by(OrderItem.service_id).order_by(text("cnt DESC")).limit(5)
 
     top_services = []
     for row in service_q.all():

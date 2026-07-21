@@ -1,4 +1,4 @@
-# core/security.py
+﻿# core/security.py
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
@@ -98,7 +98,7 @@ def get_effective_store_id(user: User, requested_store_id: int | None, db) -> in
     """
     获取实际操作的门店ID。
     - admin 使用传入的 store_id（可为None）
-    - staff 忽略传入参数，强制使用其绑定门店ID
+    - staff 忽略传入参数，优先使用 is_primary 主属门店，无主属则取第一个绑定门店
     - 如果 staff 未绑定门店则抛出403
     """
     if user.role == "admin":
@@ -109,7 +109,16 @@ def get_effective_store_id(user: User, requested_store_id: int | None, db) -> in
             status_code=status.HTTP_403_FORBIDDEN,
             detail="您尚未绑定任何门店，请联系管理员",
         )
-    return store_ids[0]  # staff默认使用第一个绑定门店
+    # 优先查找 is_primary 主属门店
+    from models.store_model import UserStore
+    primary = db.query(UserStore).filter(
+        UserStore.user_id == user.id,
+        UserStore.is_primary == True,
+    ).first()
+    if primary and primary.store_id in store_ids:
+        return primary.store_id
+    # 无主属门店则返回第一个绑定门店
+    return store_ids[0]
 
 
 def require_store_access(user: User, store_id: int, db):

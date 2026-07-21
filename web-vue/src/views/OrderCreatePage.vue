@@ -1,5 +1,5 @@
-<script setup lang="ts">
-// views/OrderCreatePage.vue — 创建订单
+﻿<script setup lang="ts">
+// views/OrderCreatePage.vue 鈥?鍒涘缓璁㈠崟
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -13,7 +13,7 @@ import { useStoreStore } from '@/stores/store'
 const router = useRouter()
 const storeStore = useStoreStore()
 
-// ========== 订单基本信息 ==========
+// ========== 璁㈠崟鍩烘湰淇℃伅 ==========
 const orderType = ref<string>('sale') // sale / service
 const customerId = ref<number | null>(null)
 const paymentMethod = ref<string>('cash')
@@ -21,12 +21,12 @@ const discountAmount = ref(0)
 const remark = ref('')
 const submitting = ref(false)
 
-// ========== 可选数据 ==========
+// ========== 鍙€夋暟鎹?==========
 const products = ref<Product[]>([])
 const services = ref<Service[]>([])
 const customers = ref<{ id: number; name: string; phone: string | null }[]>([])
 
-// ========== 明细行 ==========
+// ========== 鏄庣粏琛?==========
 interface ItemRow {
   key: number
   itemType: string // 'product' | 'service'
@@ -65,7 +65,7 @@ const removeRow = (idx: number) => {
   items.value.splice(idx, 1)
 }
 
-// 选择商品
+// 閫夋嫨鍟嗗搧
 const onProductSelect = (idx: number, productId: number) => {
   const row = items.value[idx]
   if (!row) return
@@ -77,11 +77,11 @@ const onProductSelect = (idx: number, productId: number) => {
     row.unitPrice = p.price
     row.maxStock = p.stock
     row.quantity = 1
-    row.subtotal = p.price
+    row.subtotal = Math.round(p.price * 100) / 100
   }
 }
 
-// 选择服务
+// 閫夋嫨鏈嶅姟
 const onServiceSelect = (idx: number, serviceId: number) => {
   const row = items.value[idx]
   if (!row) return
@@ -93,26 +93,24 @@ const onServiceSelect = (idx: number, serviceId: number) => {
     row.serviceName = s.name
     row.unitPrice = s.price
     row.quantity = 1
-    row.subtotal = s.price
+    row.subtotal = Math.round(s.price * 100) / 100
   }
 }
 
-// 数量/单价变化时重算小计
-const recalcSubtotal = (idx: number) => {
+// 鏁伴噺/鍗曚环鍙樺寲鏃堕噸绠楀皬璁?const recalcSubtotal = (idx: number) => {
   const row = items.value[idx]
   if (!row) return
   if (row.quantity > row.maxStock && row.itemType === 'product' && row.maxStock > 0) {
     row.quantity = row.maxStock
-    ElMessage.warning('数量不可超过库存')
+    ElMessage.warning('鏁伴噺涓嶅彲瓒呰繃搴撳瓨')
   }
-  row.subtotal = row.unitPrice * row.quantity
+  row.subtotal = Math.round(row.unitPrice * row.quantity * 100) / 100
 }
 
-// 总金额
-const totalAmount = computed(() => items.value.reduce((s, r) => s + r.subtotal, 0))
-const finalAmount = computed(() => Math.max(0, totalAmount.value - discountAmount.value))
+// 鎬婚噾棰?const totalAmount = computed(() => items.value.reduce((s, r) => s + r.subtotal, 0))
+const finalAmount = computed(() => Math.max(0, Math.round((totalAmount.value - discountAmount.value) * 100) / 100))
 
-// 加载下拉数据
+// 鍔犺浇涓嬫媺鏁版嵁
 const loadDropdownData = async () => {
   try {
     const [pRes, sRes, cRes] = await Promise.all([
@@ -125,36 +123,34 @@ const loadDropdownData = async () => {
     customers.value = cRes.data.map(
       (c: { id: number; real_name: string | null; phone: string | null }) => ({
         id: c.id,
-        name: c.real_name || '未实名',
+        name: c.real_name || '鏈疄鍚?,
         phone: c.phone,
       }),
     )
   } catch {
-    ElMessage.error('加载基础数据失败')
+    ElMessage.error('鍔犺浇鍩虹鏁版嵁澶辫触')
   }
 }
 
 onMounted(() => { loadDropdownData() })
 
-// 切换订单类型时清空明细
-watch(orderType, () => {
+// 鍒囨崲璁㈠崟绫诲瀷鏃舵竻绌烘槑缁?watch(orderType, () => {
   items.value = [createEmptyRow()]
   discountAmount.value = 0
 })
 
-// 监听门店切换自动刷新商品和服务列表
-watch(() => storeStore.currentStoreId, () => {
+// 鐩戝惉闂ㄥ簵鍒囨崲鑷姩鍒锋柊鍟嗗搧鍜屾湇鍔″垪琛?watch(() => storeStore.currentStoreId, () => {
   loadDropdownData()
 })
 
-// 提交
+// 鎻愪氦
 const handleSubmit = async () => {
-  if (!storeStore.currentStoreId) { ElMessage.warning('请先选择门店'); return }
+  if (!storeStore.currentStoreId) { ElMessage.warning('璇峰厛閫夋嫨闂ㄥ簵'); return }
 
   const validItems = items.value.filter(r =>
     r.itemType === 'product' ? r.productId : r.serviceId,
   )
-  if (validItems.length === 0) { ElMessage.warning('请至少添加一个项目'); return }
+  if (validItems.length === 0) { ElMessage.warning('璇疯嚦灏戞坊鍔犱竴涓」鐩?); return }
 
   const orderItems: OrderCreateItem[] = validItems.map(r => ({
     item_type: r.itemType,
@@ -176,11 +172,11 @@ const handleSubmit = async () => {
       remark: remark.value || undefined,
       items: orderItems,
     })
-    ElMessage.success(`订单创建成功：${res.data.order_no}`)
+    ElMessage.success(`璁㈠崟鍒涘缓鎴愬姛锛?{res.data.order_no}`)
     router.push('/orders')
   } catch (err: unknown) {
     ElMessage.error(
-      (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || '创建失败',
+      (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || '鍒涘缓澶辫触',
     )
   } finally { submitting.value = false }
 }
@@ -192,41 +188,41 @@ const handleSubmit = async () => {
       <div style="display:flex;align-items:center;gap:12px">
         <el-button :icon="Back" text @click="router.push('/orders')" />
         <div>
-          <h2 class="page-title">创建订单</h2>
-          <p class="page-subtitle">创建销售订单或服务订单</p>
+          <h2 class="page-title">鍒涘缓璁㈠崟</h2>
+          <p class="page-subtitle">鍒涘缓閿€鍞鍗曟垨鏈嶅姟璁㈠崟</p>
         </div>
       </div>
     </div>
 
-    <!-- 基本信息 -->
+    <!-- 鍩烘湰淇℃伅 -->
     <div class="section-card">
-      <h3 class="section-title">基本信息</h3>
+      <h3 class="section-title">鍩烘湰淇℃伅</h3>
       <el-row :gutter="16">
         <el-col :xs="12" :sm="6">
           <div class="field-item">
-            <label class="field-label">订单类型</label>
+            <label class="field-label">璁㈠崟绫诲瀷</label>
             <el-radio-group v-model="orderType">
-              <el-radio-button value="sale">销售订单</el-radio-button>
-              <el-radio-button value="service">服务订单</el-radio-button>
+              <el-radio-button value="sale">閿€鍞鍗?/el-radio-button>
+              <el-radio-button value="service">鏈嶅姟璁㈠崟</el-radio-button>
             </el-radio-group>
           </div>
         </el-col>
         <el-col :xs="12" :sm="6">
           <div class="field-item">
-            <label class="field-label">支付方式</label>
+            <label class="field-label">鏀粯鏂瑰紡</label>
             <el-select v-model="paymentMethod" style="width:100%">
-              <el-option label="现金" value="cash" />
-              <el-option label="微信" value="wechat" />
-              <el-option label="支付宝" value="alipay" />
-              <el-option label="刷卡" value="card" />
-              <el-option label="余额" value="balance" />
+              <el-option label="鐜伴噾" value="cash" />
+              <el-option label="寰俊" value="wechat" />
+              <el-option label="鏀粯瀹? value="alipay" />
+              <el-option label="鍒峰崱" value="card" />
+              <el-option label="浣欓" value="balance" />
             </el-select>
           </div>
         </el-col>
         <el-col :xs="12" :sm="6">
           <div class="field-item">
-            <label class="field-label">客户（可选）</label>
-            <el-select v-model="customerId" placeholder="散客可不选" clearable filterable style="width:100%">
+            <label class="field-label">瀹㈡埛锛堝彲閫夛級</label>
+            <el-select v-model="customerId" placeholder="鏁ｅ鍙笉閫? clearable filterable style="width:100%">
               <el-option
                 v-for="c in customers" :key="c.id"
                 :label="`${c.name} ${c.phone || ''}`"
@@ -237,37 +233,37 @@ const handleSubmit = async () => {
         </el-col>
         <el-col :xs="12" :sm="6">
           <div class="field-item">
-            <label class="field-label">优惠金额 (¥)</label>
+            <label class="field-label">浼樻儬閲戦 (楼)</label>
             <el-input-number v-model="discountAmount" :min="0" :precision="2" style="width:100%" />
           </div>
         </el-col>
       </el-row>
     </div>
 
-    <!-- 项目明细 -->
+    <!-- 椤圭洰鏄庣粏 -->
     <div class="section-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <h3 class="section-title" style="margin-bottom:0">项目明细</h3>
-        <el-button :icon="Plus" size="small" type="primary" plain @click="addRow">添加项目</el-button>
+        <h3 class="section-title" style="margin-bottom:0">椤圭洰鏄庣粏</h3>
+        <el-button :icon="Plus" size="small" type="primary" plain @click="addRow">娣诲姞椤圭洰</el-button>
       </div>
 
       <div v-for="(row, idx) in items" :key="row.key" class="item-row">
         <el-row :gutter="10" align="middle">
-          <!-- 选择商品/服务 -->
+          <!-- 閫夋嫨鍟嗗搧/鏈嶅姟 -->
           <el-col :xs="24" :sm="5">
             <div class="field-item">
-              <label class="field-label-inline">{{ orderType === 'sale' ? '商品' : '服务' }}</label>
+              <label class="field-label-inline">{{ orderType === 'sale' ? '鍟嗗搧' : '鏈嶅姟' }}</label>
               <template v-if="orderType === 'sale'">
                 <el-select
                   :model-value="row.productId"
-                  placeholder="选择商品"
+                  placeholder="閫夋嫨鍟嗗搧"
                   filterable
                   style="width:100%"
                   @change="(val:number) => onProductSelect(idx, val)"
                 >
                   <el-option
                     v-for="p in products" :key="p.id"
-                    :label="`${p.name} (¥${Number(p.price).toFixed(2)})`"
+                    :label="`${p.name} (楼${Number(p.price).toFixed(2)})`"
                     :value="p.id"
                   />
                 </el-select>
@@ -275,24 +271,24 @@ const handleSubmit = async () => {
               <template v-else>
                 <el-select
                   :model-value="row.serviceId"
-                  placeholder="选择服务"
+                  placeholder="閫夋嫨鏈嶅姟"
                   filterable
                   style="width:100%"
                   @change="(val:number) => onServiceSelect(idx, val)"
                 >
                   <el-option
                     v-for="s in services" :key="s.id"
-                    :label="`${s.name} (¥${Number(s.price).toFixed(2)})`"
+                    :label="`${s.name} (楼${Number(s.price).toFixed(2)})`"
                     :value="s.id"
                   />
                 </el-select>
               </template>
             </div>
           </el-col>
-          <!-- 单价 -->
+          <!-- 鍗曚环 -->
           <el-col :xs="8" :sm="3">
             <div class="field-item">
-              <label class="field-label-inline">单价</label>
+              <label class="field-label-inline">鍗曚环</label>
               <el-input-number
                 v-model="row.unitPrice"
                 :min="0"
@@ -303,10 +299,10 @@ const handleSubmit = async () => {
               />
             </div>
           </el-col>
-          <!-- 数量 -->
+          <!-- 鏁伴噺 -->
           <el-col :xs="8" :sm="3">
             <div class="field-item">
-              <label class="field-label-inline">数量</label>
+              <label class="field-label-inline">鏁伴噺</label>
               <el-input-number
                 v-model="row.quantity"
                 :min="1"
@@ -317,14 +313,14 @@ const handleSubmit = async () => {
               />
             </div>
           </el-col>
-          <!-- 小计 -->
+          <!-- 灏忚 -->
           <el-col :xs="8" :sm="3">
             <div class="field-item">
-              <label class="field-label-inline">小计</label>
-              <span class="subtotal-display">¥{{ row.subtotal.toFixed(2) }}</span>
+              <label class="field-label-inline">灏忚</label>
+              <span class="subtotal-display">楼{{ row.subtotal.toFixed(2) }}</span>
             </div>
           </el-col>
-          <!-- 操作 -->
+          <!-- 鎿嶄綔 -->
           <el-col :xs="24" :sm="2" style="text-align:right">
             <el-button type="danger" :icon="Delete" circle size="small" @click="removeRow(idx)" :disabled="items.length <= 1" />
           </el-col>
@@ -332,31 +328,31 @@ const handleSubmit = async () => {
       </div>
     </div>
 
-    <!-- 合计 + 备注 + 提交 -->
+    <!-- 鍚堣 + 澶囨敞 + 鎻愪氦 -->
     <div class="section-card">
       <el-row :gutter="16">
         <el-col :xs="24" :sm="12">
           <div class="field-item">
-            <label class="field-label">备注</label>
-            <el-input v-model="remark" placeholder="订单备注（可选）" maxlength="200" />
+            <label class="field-label">澶囨敞</label>
+            <el-input v-model="remark" placeholder="璁㈠崟澶囨敞锛堝彲閫夛級" maxlength="200" />
           </div>
         </el-col>
         <el-col :xs="24" :sm="12">
           <div class="summary-area">
             <div class="summary-line">
-              <span>总金额</span>
-              <span>¥{{ totalAmount.toFixed(2) }}</span>
+              <span>鎬婚噾棰?/span>
+              <span>楼{{ totalAmount.toFixed(2) }}</span>
             </div>
             <div class="summary-line">
-              <span>优惠</span>
-              <span>-¥{{ discountAmount.toFixed(2) }}</span>
+              <span>浼樻儬</span>
+              <span>-楼{{ discountAmount.toFixed(2) }}</span>
             </div>
             <div class="summary-line final">
-              <span>实付金额</span>
-              <span>¥{{ finalAmount.toFixed(2) }}</span>
+              <span>瀹炰粯閲戦</span>
+              <span>楼{{ finalAmount.toFixed(2) }}</span>
             </div>
             <el-button type="primary" size="large" style="width:100%;margin-top:12px" :loading="submitting" @click="handleSubmit">
-              提交订单
+              鎻愪氦璁㈠崟
             </el-button>
           </div>
         </el-col>
@@ -402,7 +398,7 @@ const handleSubmit = async () => {
   border-top: 1px solid #e8e8e8; padding-top: 10px; margin-top: 6px;
 }
 
-/* ========== 移动端适配 ========== */
+/* ========== 绉诲姩绔€傞厤 ========== */
 @media (max-width: 767px) {
   .page-root { padding: 0 4px; }
   .page-title { font-size: 18px; }
@@ -414,3 +410,4 @@ const handleSubmit = async () => {
   .summary-area { margin-top: 12px; }
 }
 </style>
+

@@ -1,4 +1,4 @@
-# crud/order_crud.py — 订单管理业务逻辑
+﻿# crud/order_crud.py — 订单管理业务逻辑
 from datetime import datetime
 from sqlalchemy.orm import Session, joinedload
 
@@ -8,12 +8,9 @@ from schemas.order_schema import OrderCreate, OrderUpdate, OrderStatusUpdate
 
 
 def _generate_order_no(db: Session) -> str:
-    """生成订单编号: 年月日时分秒 + 毫秒，如 20260513143025-001"""
-    prefix = datetime.now().strftime("%Y%m%d%H%M%S")
-    # 查询当天已有订单数作为序号
-    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    count = db.query(Order).filter(Order.created_at >= today_start).count()
-    return f"{prefix}-{count + 1:03d}"
+    """生成订单编号: 年月日时分秒微秒，如 20260513143025123456（20位）
+    使用微秒级时间戳避免高并发重复，不依赖数据库计数"""
+    return datetime.now().strftime("%Y%m%d%H%M%S%f")
 
 
 # ==================== 订单 CRUD ====================
@@ -56,12 +53,27 @@ def get_order_by_id(db: Session, order_id: int):
 
 
 def create_order(db: Session, order_data: OrderCreate):
-    """创建订单：自动生成编号、计算金额、扣减库存"""
-    # 1. 计算总金额
+    """创建订单：自动生成编号、服务端重算金额、扣减库存"""
+    # 1. 服务端重新计算金额，不信任前端传来的 subtotal
     total_amount = 0.0
+    recalculated_items = []
     for item in order_data.items:
-        total_amount += item.subtotal
-    final_amount = total_amount - (order_data.discount_amount or 0)
+        # 用单价 × 数量重新计算小计，防止前端篡改
+        recalculated_subtotal = round(item.unit_price * item.quantity, 2)
+        total_amount += recalculated_subtotal
+        recalculated_items.append({
+            "item_type": item.item_type,
+            "product_id": item.product_id,
+            "service_id": item.service_id,
+            "quantity": item.quantity,
+            "unit_price": item.unit_price,
+            "subtotal": recalculated_subtotal,
+            "staff_id": item.staff_id,
+        })
+
+    # 优惠金额不能超过总金额
+    discount = min(order_data.discount_amount or 0, total_amount)
+    final_amount = round(total_amount - discount, 2)
 
     # 2. 创建订单
     db_order = Order(
@@ -70,7 +82,7 @@ def create_order(db: Session, order_data: OrderCreate):
         order_type=order_data.order_type,
         customer_id=order_data.customer_id,
         total_amount=total_amount,
-        discount_amount=order_data.discount_amount,
+        discount_amount=discount,
         final_amount=max(final_amount, 0),
         payment_method=order_data.payment_method,
         status="pending",  # 初始状态待支付
@@ -81,32 +93,32 @@ def create_order(db: Session, order_data: OrderCreate):
     db.flush()  # 获取订单ID
 
     # 3. 创建明细 + 扣减库存
-    for item in order_data.items:
+    for r_item in recalculated_items:
         db_item = OrderItem(
             order_id=db_order.id,
-            item_type=item.item_type,
-            product_id=item.product_id,
-            service_id=item.service_id,
-            quantity=item.quantity,
-            unit_price=item.unit_price,
-            subtotal=item.subtotal,
-            staff_id=item.staff_id,
+            item_type=r_item["item_type"],
+            product_id=r_item["product_id"],
+            service_id=r_item["service_id"],
+            quantity=r_item["quantity"],
+            unit_price=r_item["unit_price"],
+            subtotal=r_item["subtotal"],
+            staff_id=r_item["staff_id"],
         )
         db.add(db_item)
 
         # 扣减商品库存（仅销售订单的商品类）
-        if item.item_type == "product" and item.product_id:
+        if r_item["item_type"] == "product" and r_item["product_id"]:
             # 使用悲观行锁防止并发超卖
             product = db.query(Product).filter(
-                Product.id == item.product_id
+                Product.id == r_item["product_id"]
             ).with_for_update().first()
             if not product:
-                raise ValueError(f"商品 {item.product_id} 不存在")
-            if product.stock < item.quantity:
+                raise ValueError(f"商品 {r_item['product_id']} 不存在")
+            if product.stock < r_item["quantity"]:
                 raise ValueError(
-                    f"商品「{product.name}」库存不足，当前库存 {product.stock}，需要 {item.quantity}"
+                    f"商品「{product.name}」库存不足，当前库存 {product.stock}，需要 {r_item['quantity']}"
                 )
-            product.stock -= item.quantity
+            product.stock -= r_item["quantity"]
 
     db.commit()
     db.refresh(db_order)
@@ -114,10 +126,15 @@ def create_order(db: Session, order_data: OrderCreate):
 
 
 def update_order(db: Session, order_id: int, order_data: OrderUpdate):
-    """更新订单基本信息"""
+    """更新订单基本信息（仅允许修改非财务、非状态字段）"""
     db_order = get_order_by_id(db, order_id)
     if db_order:
         update_data = order_data.model_dump(exclude_unset=True)
+        # 安全过滤：禁止通过此接口修改状态和金额字段
+        update_data.pop("status", None)
+        update_data.pop("total_amount", None)
+        update_data.pop("final_amount", None)
+        update_data.pop("discount_amount", None)
         for key, value in update_data.items():
             setattr(db_order, key, value)
         db.commit()
@@ -165,8 +182,11 @@ def update_order_status(db: Session, order_id: int, status_data: OrderStatusUpda
                 product = db.query(Product).filter(
                     Product.id == item.product_id
                 ).with_for_update().first()
-                if product:
-                    product.stock += item.quantity
+                if not product:
+                    raise ValueError(
+                        f"订单 {db_order.order_no} 商品 {item.product_id} 已被删除，无法回滚库存，请手动处理"
+                    )
+                product.stock += item.quantity
 
     db.commit()
     db.refresh(db_order)

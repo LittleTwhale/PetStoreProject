@@ -42,3 +42,4 @@ miniapp/.env.local
 CLAUDE.md
 task.md
 optimization.md
+.reasonix/

@@ -1,6 +1,7 @@
-# backend/crud/customer_crud.py
+﻿# backend/crud/customer_crud.py
 from sqlalchemy.orm import Session
 from models.customer_model import CustomerProfile
+from models.pet_model import Pet
 from schemas.customer_schema import CustomerProfileCreate, CustomerProfileUpdate
 
 
@@ -57,10 +58,18 @@ def update_customer(db: Session, customer_id: int, customer: CustomerProfileUpda
 
 
 def delete_customer(db: Session, customer_id: int) -> bool:
-    """删除客户档案（关联的宠物 owner_id 会被置空）"""
+    """删除客户档案（关联的宠物 ownership_type 同步改为 store_mascot）"""
     db_customer = get_customer_by_id(db, customer_id)
     if not db_customer:
         return False
+
+    # 将该客户名下的宠物 ownership_type 改为 "store_mascot"（店宠），
+    # 避免 owner_id 被 SET NULL 后出现 "无主人的客宠" 逻辑不一致
+    pets = db.query(Pet).filter(Pet.owner_id == customer_id).all()
+    for pet in pets:
+        pet.ownership_type = "store_mascot"
+        pet.owner_id = None  # 显式置空（外键 SET NULL 已处理，但显式赋值更明确）
+
     db.delete(db_customer)
     db.commit()
     return True
